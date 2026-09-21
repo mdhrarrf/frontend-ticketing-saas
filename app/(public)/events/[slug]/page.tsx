@@ -1,163 +1,152 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar, MapPin, Clock, Users, Ticket, Zap, Shield,
-  Share2, Heart, ChevronDown, ChevronUp, ArrowRight,
-  AlertTriangle, CheckCircle, Info, Building, Check
+  Calendar, MapPin, Clock, Ticket, Zap, Shield,
+  Share2, Heart, ArrowRight, CheckCircle, Info, Building, Check
 } from 'lucide-react';
 import { CountdownTimer } from '../../../../components/events/CountdownTimer';
 import { apiService } from '../../../../lib/api';
 import type { Event, TicketCategory } from '../../../../types';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  concert: 'var(--color-primary)', festival: 'var(--color-primary)', fan_meeting: 'var(--color-primary)',
-  seminar: 'var(--color-primary)', sports: 'var(--color-primary)', default: 'var(--color-primary)',
-};
-
-function formatRupiah(amount: number) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-}
+import { Button, Badge, Card, LoadingState, ErrorState } from '@/components/ui';
+import { PageContainer } from '@/components/layout';
+import { formatRupiah, formatDate } from '@/lib/utils';
 
 // ─── Category Ticket Card ─────────────────────────────────────
-function TicketCategoryCard({ cat, eventSaleOpen, isWarTicket, onSelect }: {
+function TicketCategoryCard({
+  cat,
+  eventSaleOpen,
+  isWarTicket,
+  onSelect,
+}: {
   cat: TicketCategory;
   eventSaleOpen: boolean;
   isWarTicket: boolean;
   onSelect: (cat: TicketCategory) => void;
 }) {
-  const available     = (cat.quota ?? 0) - (cat.sold ?? 0) - (cat.reserved ?? 0);
-  const soldPercent   = cat.quota > 0 ? ((cat.sold + cat.reserved) / cat.quota) * 100 : 0;
-  // Only show SOLD OUT when sale is actually open but stock is 0
-  const isSoldOut     = eventSaleOpen && available <= 0;
-  const isAlmostGone  = eventSaleOpen && soldPercent >= 75 && !isSoldOut;
-  const isNotOpenYet  = !eventSaleOpen;
+  const available = (cat.quota ?? 0) - (cat.sold ?? 0) - (cat.reserved ?? 0);
+  const soldPercent = cat.quota > 0 ? ((cat.sold + cat.reserved) / cat.quota) * 100 : 0;
+  const isSoldOut = eventSaleOpen && available <= 0;
+  const isAlmostGone = eventSaleOpen && soldPercent >= 75 && !isSoldOut;
+  const isNotOpenYet = !eventSaleOpen;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        padding: 20, borderRadius: 16,
-        background: 'var(--card)',
-        border: `1px solid ${
-          isNotOpenYet ? 'var(--border)'
-          : isSoldOut  ? 'rgba(239,68,68,0.2)'
-          : (cat.color ?? '#6366F1') + '30'
-        }`,
-        opacity: isSoldOut ? 0.55 : 1,
-        position: 'relative', overflow: 'hidden',
-      }}
+    <Card
+      variant="default"
+      className={`p-4 sm:p-5 relative overflow-hidden transition-all duration-200 ${
+        isSoldOut ? 'opacity-55 border-danger/30' : 'hover:border-primary/40'
+      }`}
     >
-      {/* Color accent line */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: isNotOpenYet ? 'var(--border)' : (cat.color ?? 'var(--color-primary)') }} />
+      {/* Color accent bar */}
+      <div
+        className="absolute top-0 left-0 right-0 h-1"
+        style={{ background: isNotOpenYet ? 'var(--border)' : (cat.color ?? 'var(--color-primary)') }}
+      />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: isNotOpenYet ? 'var(--text-muted)' : 'var(--text-primary)' }}>{cat.name}</h3>
+      <div className="flex justify-between items-start gap-4 mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <h3 className={`text-base font-bold ${isNotOpenYet ? 'text-text-muted' : 'text-text-primary'}`}>
+              {cat.name}
+            </h3>
             {isAlmostGone && (
-              <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', fontWeight: 700 }}>
+              <Badge variant="warning" size="sm">
                 HAMPIR HABIS
-              </span>
+              </Badge>
             )}
             {isSoldOut && (
-              <span style={{ fontSize: '0.65rem', padding: '2px 8px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)', fontWeight: 700 }}>
+              <Badge variant="danger" size="sm">
                 SOLD OUT
-              </span>
+              </Badge>
             )}
           </div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 900, color: isNotOpenYet ? 'var(--text-muted)' : (cat.color ?? 'var(--color-primary)') }}>
+          <div
+            className={`text-xl font-extrabold ${
+              isNotOpenYet ? 'text-text-muted' : 'text-primary'
+            }`}
+          >
             {formatRupiah(Number(cat.price))}
           </div>
           {cat.service_fee && Number(cat.service_fee) > 0 && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+            <div className="text-xs text-text-muted mt-0.5">
               + biaya layanan {formatRupiah(Number(cat.service_fee))}
             </div>
           )}
         </div>
 
-        {/* Action button — only show when sale is open and NOT sold out */}
+        {/* Action Button */}
         {!isNotOpenYet && !isSoldOut && (
-          <button
+          <Button
+            variant={isWarTicket ? 'danger' : 'primary'}
+            size="sm"
             onClick={() => onSelect(cat)}
-            style={{
-              padding: '10px 20px', borderRadius: 10, fontWeight: 700, fontSize: '0.875rem',
-              background: isWarTicket ? '#EF4444' : (cat.color ?? 'var(--color-primary)'),
-              color: 'white', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-              transition: 'all 0.2s', flexShrink: 0,
-            }}
+            className="shrink-0 font-bold"
+            leftIcon={isWarTicket ? <Zap className="w-3.5 h-3.5 fill-current" /> : undefined}
           >
-            {isWarTicket ? <><Zap size={14} style={{ display: 'inline', marginRight: 4 }}/>War</> : 'Pilih'}
-          </button>
+            {isWarTicket ? 'War' : 'Pilih'}
+          </Button>
         )}
       </div>
 
-      {/* Progress bar — only show when sale is open */}
+      {/* Progress Bar */}
       {eventSaleOpen && (
-        <div style={{ marginBottom: 10 }}>
-          <div className="progress-bar">
+        <div className="mb-3">
+          <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
             <div
-              className={`progress-fill ${isAlmostGone ? 'progress-fill-danger' : ''}`}
+              className={`h-full rounded-full transition-all duration-500 ${
+                isAlmostGone ? 'bg-warning' : 'bg-primary'
+              }`}
               style={{ width: `${soldPercent}%` }}
             />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>
+          <div className="flex justify-between text-[11px] text-text-muted mt-1.5">
             <span>{Math.round(soldPercent)}% terjual</span>
             <span>{available > 0 ? `${available.toLocaleString('id-ID')} tersisa` : 'Habis'}</span>
           </div>
         </div>
       )}
 
-      {/* "Not yet open" state label */}
+      {/* Not Yet Open State */}
       {isNotOpenYet && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500,
-          padding: '8px 12px', borderRadius: 8, background: 'var(--background)',
-          border: '1px solid var(--border)', marginBottom: 10,
-        }}>
-          <Clock size={13} />
+        <div className="flex items-center gap-2 text-xs text-text-muted font-medium px-3 py-2 rounded-lg bg-surface border border-border mb-3">
+          <Clock className="w-3.5 h-3.5" />
           Penjualan belum dibuka
         </div>
       )}
 
       {/* Benefits */}
       {cat.benefits && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div className="flex gap-1.5 flex-wrap mb-2">
           {(Array.isArray(cat.benefits) ? cat.benefits : []).map((b: string, i: number) => (
-            <span key={i} style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
-              <Check size={12} style={{ display: 'inline', marginRight: 4, color: 'var(--success)' }} /> {b}
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-white/5 text-text-secondary border border-border/50"
+            >
+              <Check className="w-3 h-3 text-success" /> {b}
             </span>
           ))}
         </div>
       )}
 
       {/* Max per user */}
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 10 }}>
-        Max {cat.max_per_user} tiket per orang
+      <div className="text-[11px] text-text-muted">
+        Maksimal {cat.max_per_user} tiket per orang
       </div>
-    </motion.div>
+    </Card>
   );
 }
 
 // ─── Main Page ────────────────────────────────────────────────
-
 export default function EventDetailPage() {
-  const params               = useParams();
-  const slug                 = params?.slug as string;
-  const [event, setEvent]    = useState<Event | null>(null);
-  const [cats, setCats]      = useState<TicketCategory[]>([]);
-  const [loading, setLoading]= useState(true);
+  const params = useParams();
+  const slug = params?.slug as string;
+  const [event, setEvent] = useState<Event | null>(null);
+  const [cats, setCats] = useState<TicketCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saleOpen, setSaleOpen] = useState(false);
-  const [openFaq, setOpenFaq]   = useState<number | null>(null);
   const [wishlisted, setWishlisted] = useState(false);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
@@ -168,13 +157,18 @@ export default function EventDetailPage() {
           apiService.events.getEvent(slug),
           apiService.events.getEventCategories(slug),
         ]);
-        const ev  = (evRes as any)?.data ?? evRes;
-        const cs  = (catRes as any)?.data ?? catRes ?? [];
+        const ev = (evRes as any)?.data ?? evRes;
+        const cs = (catRes as any)?.data ?? catRes ?? [];
         setEvent(ev);
         setCats(Array.isArray(cs) ? cs : []);
-        setSaleOpen(new Date(ev.sale_start_at) <= new Date() && new Date(ev.sale_end_at) >= new Date());
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
+        setSaleOpen(
+          new Date(ev.sale_start_at) <= new Date() && new Date(ev.sale_end_at) >= new Date()
+        );
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [slug]);
@@ -195,221 +189,217 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 40, height: 40, border: '3px solid var(--border-bright)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', animation: 'spin-slow 0.8s linear infinite' }} />
-          <p style={{ color: 'var(--text-muted)' }}>Memuat event...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center pt-20">
+        <LoadingState message="Memuat detail event..." />
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <AlertTriangle size={48} style={{ color: 'var(--danger)', opacity: 0.6 }} />
-        <h2>Event tidak ditemukan</h2>
-        <Link href="/events" className="btn btn-primary">Kembali ke Events</Link>
+      <div className="min-h-screen flex items-center justify-center pt-20">
+        <ErrorState
+          title="Event Tidak Ditemukan"
+          description="Event yang Anda cari mungkin sudah dihapus atau tautan tidak valid."
+          retryText="Kembali ke Daftar Events"
+          onRetry={() => (window.location.href = '/events')}
+        />
       </div>
     );
   }
 
-  const categoryColor = CATEGORY_COLORS[event.category] ?? CATEGORY_COLORS.default;
-  const minPrice      = cats.length > 0 ? Math.min(...cats.map(c => Number(c.price))) : Number(event.min_price ?? 0);
-  const hasSaleStarted = new Date(event.sale_start_at) <= new Date();
+  const minPrice =
+    cats.length > 0
+      ? Math.min(...cats.map((c) => Number(c.price)))
+      : Number(event.min_price ?? 0);
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 100 }}>
-
+    <div className="min-h-screen pb-28">
       {/* ─── HERO BANNER ─────────────────────────────────── */}
-      <div style={{ position: 'relative', minHeight: 460, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden', paddingBottom: 40, paddingTop: 120 }}>
+      <div className="relative min-h-[460px] flex flex-col justify-end overflow-hidden pb-10 pt-28">
         {event.banner ? (
-          <img src={event.banner} alt={event.title} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={event.banner}
+            alt={event.title}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         ) : (
-          <div style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            backgroundColor: '#0F172A',
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Ticket size={160} style={{ color: 'white', opacity: 0.03, transform: 'rotate(-10deg)' }} />
+          <div className="absolute inset-0 w-full h-full bg-[#0F172A] flex items-center justify-center">
+            <Ticket className="w-44 h-44 text-white/5 -rotate-12" />
           </div>
         )}
-        {/* Overlay gradient so text is readable */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)' }} />
 
-        {/* Content inside Banner */}
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20 }} className="container">
-          <div style={{ flex: 1, color: 'white' }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <span style={{
-                padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800,
-                background: categoryColor, color: 'white', textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>
-                {event.category}
-              </span>
-              {event.is_war_ticket && (
-                <span style={{ background: '#EF4444', color: 'white', padding: '6px 14px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800 }}>
-                  <Zap size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} /> WAR TICKET
-                </span>
-              )}
-            </div>
-            
-            <h1 style={{ color: 'white', fontSize: 'clamp(2rem, 5vw, 3.5rem)', marginBottom: 16, lineHeight: 1.1, fontWeight: 900, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
-              {event.title}
-            </h1>
+        {/* Ambient Dark Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: '0.95rem', opacity: 0.9, fontWeight: 500 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Calendar size={18} />
-                  {formatDate(event.event_date)}
+        {/* Hero Content */}
+        <PageContainer size="lg" className="relative z-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-4 flex-wrap">
+                <Badge variant="primary" size="md" className="uppercase font-bold tracking-wider">
+                  {event.category}
+                </Badge>
+                {event.is_war_ticket && (
+                  <Badge variant="warTicket" size="md" className="font-extrabold shadow-lg shadow-danger/25">
+                    <Zap className="w-3.5 h-3.5 fill-current" /> WAR TICKET
+                  </Badge>
+                )}
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight mb-4 drop-shadow-md">
+                {event.title}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-5 text-sm text-text-secondary font-medium">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-accent" />
+                  <span className="text-white">{formatDate(event.event_date)}</span>
                 </div>
                 {event.event_time && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Clock size={18} />
-                    {event.event_time.slice(0, 5)} WIB
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-accent" />
+                    <span className="text-white">{event.event_time.slice(0, 5)} WIB</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MapPin size={18} />
-                  {event.venue_name ?? 'TBA'}{event.venue_city ? `, ${event.venue_city}` : ''}
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-accent" />
+                  <span className="text-white">
+                    {event.venue_name ?? 'TBA'}{event.venue_city ? `, ${event.venue_city}` : ''}
+                  </span>
                 </div>
+              </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: 10, paddingBottom: 8 }}>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 shrink-0 pb-1">
               <button
                 onClick={() => setWishlisted(!wishlisted)}
-                style={{
-                  width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s',
-                }}
+                aria-label="Wishlist"
+                className="w-11 h-11 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-colors cursor-pointer"
               >
-                <Heart size={20} style={{ color: wishlisted ? '#EF4444' : 'white', fill: wishlisted ? '#EF4444' : 'none' }} />
+                <Heart
+                  className={`w-5 h-5 transition-colors ${
+                    wishlisted ? 'text-danger fill-danger' : 'text-white'
+                  }`}
+                />
               </button>
               <button
                 onClick={() => navigator.share?.({ title: event.title, url: window.location.href })}
-                style={{
-                  width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'all 0.2s',
-                }}
+                aria-label="Bagikan"
+                className="w-11 h-11 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-colors cursor-pointer text-white"
               >
-                <Share2 size={20} color="white" />
+                <Share2 className="w-5 h-5" />
               </button>
+            </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
 
       {/* ─── MAIN CONTENT ─────────────────────────────────── */}
-      <div className="container" style={{ marginTop: 40, position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 40, alignItems: 'flex-start' }}>
-
+      <PageContainer size="lg" className="mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN */}
-          <div>
-
-            {/* War Ticket Banner */}
+          <div className="lg:col-span-8 space-y-8">
+            {/* War Ticket Notice */}
             {event.is_war_ticket && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{
-                  padding: 24, borderRadius: 16, marginBottom: 40,
-                  background: 'rgba(239, 68, 68, 0.05)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Zap size={24} color="white" />
+              <div className="p-6 rounded-2xl bg-danger/10 border border-danger/30 relative overflow-hidden">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-danger flex items-center justify-center text-white shrink-0 shadow-lg shadow-danger/30">
+                    <Zap className="w-6 h-6 fill-current" />
                   </div>
                   <div>
-                    <h3 style={{ marginBottom: 8, color: '#DC2626', fontSize: '1.15rem', fontWeight: 800 }}>Ini adalah War Ticket Event!</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
-                      Semua peserta yang mendaftar akan masuk ke <strong>Virtual Waiting Room</strong> secara bersamaan.
-                      Sistem kami memproses antrian secara fair & transparan, dengan perlindungan anti-bot.
+                    <h3 className="text-base sm:text-lg font-bold text-danger mb-2">
+                      Ini adalah War Ticket Event!
+                    </h3>
+                    <p className="text-xs sm:text-sm text-text-secondary leading-relaxed mb-4">
+                      Semua peserta yang mendaftar akan masuk ke Virtual Waiting Room secara bersamaan.
+                      Sistem memproses antrean secara fair & transparan dengan perlindungan anti-bot.
                       Bersiaplah tepat waktu!
                     </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
-                      {['Anti-bot protection', 'Fair queue system', 'Secure checkout', '10 menit untuk bayar'].map((t, i) => (
-                        <span key={i} style={{ fontSize: '0.75rem', fontWeight: 600, padding: '6px 12px', borderRadius: 20, background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}><Check size={12} style={{ display: 'inline', marginRight: 4 }} /> {t}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {['Anti-bot protection', 'Fair queue system', 'Secure checkout', '10 menit bayar'].map((t, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-card border border-border text-text-secondary"
+                        >
+                          <Check className="w-3 h-3 text-success" /> {t}
+                        </span>
                       ))}
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Description */}
-            <section style={{ marginBottom: 40 }}>
-              <h2 style={{ marginBottom: 16, fontSize: '1.3rem' }}>Tentang Event</h2>
-              <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8, fontSize: '0.95rem' }}>
+            <section>
+              <h2 className="text-xl font-bold text-text-primary mb-4">Tentang Event</h2>
+              <div className="text-sm sm:text-base text-text-secondary leading-relaxed whitespace-pre-line bg-card/60 p-6 rounded-2xl border border-border">
                 {event.description}
               </div>
             </section>
 
             {/* Organizer */}
             {event.organizer && (
-              <section style={{ marginBottom: 40 }}>
-                <h2 style={{ marginBottom: 16, fontSize: '1.3rem' }}>Penyelenggara</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 20, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 14, background: `${categoryColor}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Building size={24} style={{ color: categoryColor }} />
+              <section>
+                <h2 className="text-xl font-bold text-text-primary mb-4">Penyelenggara</h2>
+                <Card variant="default" className="p-5 flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                    <Building className="w-6 h-6" />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: 4 }}>{event.organizer.name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <CheckCircle size={12} style={{ color: 'var(--success)' }} />
-                      Organizer Terverifikasi
+                    <div className="text-base font-bold text-text-primary mb-1">
+                      {event.organizer.name}
+                    </div>
+                    <div className="text-xs text-text-muted flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-success" />
+                      Organizer Terverifikasi TIXORA
                     </div>
                   </div>
-                </div>
+                </Card>
               </section>
             )}
 
             {/* Terms */}
             {event.terms_conditions && (
-              <section style={{ marginBottom: 40 }}>
-                <h2 style={{ marginBottom: 16, fontSize: '1.3rem' }}>Syarat & Ketentuan</h2>
-                <div style={{ padding: 20, borderRadius: 16, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-                  <Info size={14} style={{ color: 'var(--color-primary)', display: 'inline', marginRight: 6 }} />
-                  {event.terms_conditions}
+              <section>
+                <h2 className="text-xl font-bold text-text-primary mb-4">Syarat & Ketentuan</h2>
+                <div className="p-5 rounded-2xl bg-surface border border-border text-xs sm:text-sm text-text-secondary leading-relaxed flex items-start gap-3">
+                  <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <div>{event.terms_conditions}</div>
                 </div>
               </section>
             )}
           </div>
 
           {/* RIGHT COLUMN — STICKY */}
-          <div style={{ position: 'sticky', top: 100 }}>
-            <motion.div
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)' }}
-            >
-              {/* Sale countdown / status header */}
-              <div style={{
-                padding: 24,
-                background: saleOpen ? 'rgba(16, 185, 129, 0.05)' : 'rgba(99, 102, 241, 0.05)',
-                borderBottom: '1px solid var(--border)',
-                textAlign: 'center',
-              }}>
+          <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
+            <Card variant="elevated" className="overflow-hidden border-border/80 shadow-2xl">
+              {/* Sale Countdown Header */}
+              <div
+                className={`p-5 text-center border-b border-border ${
+                  saleOpen ? 'bg-success/10' : 'bg-primary/10'
+                }`}
+              >
                 {saleOpen ? (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-                      <div className="animate-pulse-slow" style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--success)' }} />
-                      <span style={{ fontWeight: 700, color: 'var(--success)' }}>TIKET SEDANG DIJUAL</span>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-success animate-ping" />
+                      <span className="text-xs font-extrabold text-success tracking-wider uppercase">
+                        TIKET SEDANG DIJUAL
+                      </span>
                     </div>
                     {event.sale_end_at && (
                       <>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>Penjualan berakhir dalam</p>
+                        <p className="text-xs text-text-muted mb-2">Penjualan berakhir dalam</p>
                         <CountdownTimer targetDate={event.sale_end_at} size="sm" />
                       </>
                     )}
                   </div>
                 ) : (
                   <div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                    <p className="text-xs text-text-muted mb-2 font-medium">
                       {event.is_war_ticket ? 'War ticket dibuka dalam' : 'Penjualan dibuka dalam'}
                     </p>
                     <CountdownTimer
@@ -421,73 +411,66 @@ export default function EventDetailPage() {
                 )}
               </div>
 
-              {/* Ticket categories */}
-              <div style={{ padding: 20, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Ticket Categories Content */}
+              <div className="p-5 space-y-4">
                 {/* Interactive Seat Map Banner Button */}
                 <Link
                   href={`/events/${slug}/seats`}
-                  style={{
-                    padding: '12px 16px', borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(236,72,153,0.15) 100%)',
-                    border: '1px solid rgba(99,102,241,0.4)', textDecoration: 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                    transition: 'all 0.2s', marginBottom: 4,
-                  }}
+                  className="p-3.5 rounded-xl bg-gradient-to-r from-primary/20 via-accent/15 to-primary/10 border border-primary/40 flex items-center justify-between gap-3 hover:border-primary transition-all group"
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 8, background: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                      <Ticket size={18} />
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                      <Ticket className="w-4 h-4" />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'white' }}>Pilih Kursi Interaktif</div>
-                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>Pilih nomor & zona tempat duduk</div>
+                      <div className="text-xs font-bold text-white">Pilih Kursi Interaktif</div>
+                      <div className="text-[11px] text-text-secondary">Pilih nomor & zona tempat duduk</div>
                     </div>
                   </div>
-                  <ArrowRight size={16} style={{ color: '#6366F1' }} />
+                  <ArrowRight className="w-4 h-4 text-accent group-hover:translate-x-1 transition-transform" />
                 </Link>
 
                 {cats.length > 0 ? (
                   <>
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: 4, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider pt-2">
                       Atau Pilih Kategori Tiket
                     </h3>
-                    {cats.map((cat) => (
-                      <TicketCategoryCard
-                        key={cat.id}
-                        cat={cat}
-                        eventSaleOpen={saleOpen}
-                        isWarTicket={event.is_war_ticket}
-                        onSelect={handleSelect}
-                      />
-                    ))}
+                    <div className="ticket-categories space-y-3">
+                      {cats.map((cat) => (
+                        <TicketCategoryCard
+                          key={cat.id}
+                          cat={cat}
+                          eventSaleOpen={saleOpen}
+                          isWarTicket={event.is_war_ticket}
+                          onSelect={handleSelect}
+                        />
+                      ))}
+                    </div>
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-                    <Ticket size={32} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
-                    <p style={{ fontSize: '0.875rem' }}>Belum ada tiket tersedia</p>
+                  <div className="text-center py-8 text-text-muted">
+                    <Ticket className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs">Belum ada tiket yang tersedia</p>
                   </div>
                 )}
 
-                {/* Safety badges */}
-                <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
-                  <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {[
-                      { icon: Shield, text: 'Aman & Terjamin' },
-                      { icon: CheckCircle, text: 'E-Ticket Resmi' },
-                      { icon: Zap, text: 'Instan' },
-                    ].map(({ icon: Icon, text }, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        <Icon size={12} style={{ color: 'var(--success)' }} />
-                        {text}
-                      </div>
-                    ))}
-                  </div>
+                {/* Safety Badges */}
+                <div className="pt-4 border-t border-border flex items-center justify-center gap-4 text-[11px] text-text-muted flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-success" /> Aman & Terjamin
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-success" /> E-Ticket Resmi
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-accent" /> Instan
+                  </span>
                 </div>
               </div>
-            </motion.div>
+            </Card>
           </div>
         </div>
-      </div>
+      </PageContainer>
 
       {/* ─── MOBILE STICKY BUY BAR ────────────────────────── */}
       <AnimatePresence>
@@ -496,27 +479,29 @@ export default function EventDetailPage() {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-              background: 'rgba(13,13,22,0.95)', backdropFilter: 'blur(16px)',
-              borderTop: '1px solid var(--border)', padding: '16px 20px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-            }}
+            className="fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-t border-border p-4 flex items-center justify-between gap-4 lg:hidden"
           >
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mulai dari</div>
-              <div style={{ fontWeight: 900, fontSize: '1.2rem', color: categoryColor }}>
-                {formatRupiah(minPrice)}
-              </div>
+              <div className="text-[10px] uppercase text-text-muted font-semibold">Mulai dari</div>
+              <div className="text-base font-extrabold text-primary">{formatRupiah(minPrice)}</div>
             </div>
             {event.is_war_ticket ? (
-              <Link href={`/waiting-room/${event.id}`} className="btn btn-primary">
-                <Zap size={16} /> Masuk Waiting Room
+              <Link href={`/waiting-room/${event.id}`}>
+                <Button variant="danger" size="sm" leftIcon={<Zap className="w-4 h-4 fill-current" />}>
+                  Masuk Waiting Room
+                </Button>
               </Link>
             ) : (
-              <button className="btn btn-primary" onClick={() => document.querySelector('.ticket-categories')?.scrollIntoView({ behavior: 'smooth' })}>
-                Beli Tiket <ArrowRight size={16} />
-              </button>
+              <Button
+                variant="primary"
+                size="sm"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                onClick={() =>
+                  document.querySelector('.ticket-categories')?.scrollIntoView({ behavior: 'smooth' })
+                }
+              >
+                Beli Tiket
+              </Button>
             )}
           </motion.div>
         )}

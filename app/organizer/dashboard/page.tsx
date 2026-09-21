@@ -1,58 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../../../store/authStore';
-import { apiService } from '../../../lib/api';
+import { useAuthStore } from '@/store/authStore';
+import { apiService } from '@/lib/api';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  TrendingUp, Ticket, Calendar, DollarSign, ArrowRight,
-  Plus, Eye, Users, BarChart3, Clock, CheckCircle,
-  XCircle, AlertCircle, Package
+  TrendingUp, Ticket, Calendar,
+  Plus, Eye, BarChart3, Package, ArrowRight
 } from 'lucide-react';
-
-function fmt(n: number) {
-  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
-  if (n >= 1_000)     return `Rp ${(n / 1_000).toFixed(0)}rb`;
-  return `Rp ${n.toLocaleString('id-ID')}`;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { color: string; bg: string; label: string }> = {
-    paid:            { color: '#10B981', bg: 'rgba(16,185,129,0.1)',  label: 'Lunas' },
-    waiting_payment: { color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', label: 'Menunggu Bayar' },
-    pending:         { color: '#6366F1', bg: 'rgba(99,102,241,0.1)', label: 'Pending' },
-    cancelled:       { color: '#EF4444', bg: 'rgba(239,68,68,0.1)',  label: 'Dibatalkan' },
-    expired:         { color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', label: 'Kadaluarsa' },
-  };
-  const c = map[status] ?? { color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', label: status };
-  return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, color: c.color, background: c.bg }}>
-      {c.label}
-    </span>
-  );
-}
-
-function EventStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { color: string; bg: string; label: string }> = {
-    published: { color: '#10B981', bg: 'rgba(16,185,129,0.1)',  label: 'Published' },
-    draft:     { color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', label: 'Draft' },
-    cancelled: { color: '#EF4444', bg: 'rgba(239,68,68,0.1)',   label: 'Dibatalkan' },
-    ended:     { color: '#6366F1', bg: 'rgba(99,102,241,0.1)',  label: 'Selesai' },
-  };
-  const c = map[status] ?? { color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', label: status };
-  return (
-    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600, color: c.color, background: c.bg }}>
-      {c.label}
-    </span>
-  );
-}
+import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
+import { PageHeader } from '@/components/layout';
+import { StatCard } from '@/components/organizer/StatCard';
+import { EventStatusBadge } from '@/components/event/EventStatusBadge';
+import { TicketStatusBadge } from '@/components/ticket/TicketStatusBadge';
+import { formatRupiah } from '@/lib/utils';
 
 export default function OrganizerDashboard() {
-  const { user }    = useAuthStore();
-  const [overview,  setOverview]  = useState<any>(null);
-  const [events,    setEvents]    = useState<any[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const { user } = useAuthStore();
+  const [overview, setOverview] = useState<any>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -69,139 +37,161 @@ export default function OrganizerDashboard() {
           const d = (evRes.value as any)?.data ?? evRes.value;
           setEvents(Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []);
         }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
   const STATS = [
     {
       label: 'Total Pendapatan',
-      value: fmt(Number(overview?.total_revenue ?? 0)),
+      value: formatRupiah(Number(overview?.total_revenue ?? 0)),
       icon: TrendingUp,
-      color: '#6366F1',
+      colorClass: 'text-primary',
+      bgClass: 'bg-primary/10 border-primary/20',
       sub: 'Semua waktu',
     },
     {
       label: 'Tiket Terjual',
       value: (overview?.total_tickets_sold ?? 0).toLocaleString('id-ID'),
       icon: Ticket,
-      color: '#EC4899',
+      colorClass: 'text-pink-500',
+      bgClass: 'bg-pink-500/10 border-pink-500/20',
       sub: 'Total tiket',
     },
     {
       label: 'Event Aktif',
       value: overview?.upcoming_events_count ?? 0,
       icon: Calendar,
-      color: '#10B981',
+      colorClass: 'text-success',
+      bgClass: 'bg-success/10 border-success/20',
       sub: 'Akan datang',
     },
     {
       label: 'Total Event',
       value: overview?.total_events ?? 0,
       icon: Package,
-      color: '#F59E0B',
+      colorClass: 'text-warning',
+      bgClass: 'bg-warning/10 border-warning/20',
       sub: 'Semua status',
     },
   ];
 
   return (
-    <div>
-      {/* Welcome header */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, marginBottom: 4 }}>
-              Selamat datang, {user?.name?.split(' ')[0] ?? 'Organizer'}!
-            </h1>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
-          </div>
-          <Link href="/organizer/events/create"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, background: 'var(--color-primary)', color: 'white', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', boxShadow: 'var(--glow-sm)', transition: 'all 0.2s' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-primary-hover)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}>
-            <Plus size={16} /> Buat Event Baru
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <PageHeader
+        title={`Selamat datang, ${user?.name?.split(' ')[0] ?? 'Organizer'}!`}
+        description={new Date().toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })}
+        actions={
+          <Link href="/organizer/events/create">
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="shadow-md shadow-primary/20 font-semibold"
+            >
+              Buat Event Baru
+            </Button>
           </Link>
-        </div>
-      </motion.div>
+        }
+      />
 
-      {/* Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 32 }}>
-        {STATS.map(({ label, value, icon: Icon, color, sub }, i) => (
-          <motion.div key={label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-            style={{ padding: '20px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={18} style={{ color }} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', opacity: 0.7 }}>{sub}</div>
-              </div>
-            </div>
-            {loading
-              ? <div style={{ height: 32, width: 80, borderRadius: 6, background: 'var(--background-2)', animation: 'pulse 1.5s ease-in-out infinite' }} />
-              : <div style={{ fontSize: '1.7rem', fontWeight: 900, lineHeight: 1, color: 'var(--text-primary)' }}>{value}</div>
-            }
-          </motion.div>
+      {/* KPI Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {STATS.map(({ label, value, icon: Icon, colorClass, bgClass, sub }) => (
+          <StatCard
+            key={label}
+            title={label}
+            value={value}
+            subtitle={sub}
+            icon={Icon}
+            iconColorClass={colorClass}
+            iconBgClass={bgClass}
+            loading={loading}
+          />
         ))}
       </div>
 
-      {/* Events Table */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={15} style={{ color: 'var(--color-primary)' }} />
-            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Event Terbaru</span>
+      {/* Recent Events Table */}
+      <Card variant="default" className="overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-text-primary">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span>Event Terbaru</span>
           </div>
-          <Link href="/organizer/events" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', color: 'var(--color-primary)', textDecoration: 'none' }}>
-            Kelola Semua <ArrowRight size={13} />
+          <Link
+            href="/organizer/events"
+            className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+          >
+            Kelola Semua <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {loading ? (
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="p-5 space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} style={{ height: 54, borderRadius: 8, background: 'var(--background-2)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <Skeleton key={i} className="h-14 w-full rounded-xl" />
             ))}
           </div>
         ) : events.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--background)' }}>
-                  {['Nama Event', 'Tanggal', 'Tiket Terjual', 'Pendapatan', 'Status', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface/60 border-b border-border text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                <tr>
+                  <th className="py-3 px-4 sm:px-6">Nama Event</th>
+                  <th className="py-3 px-4">Tanggal</th>
+                  <th className="py-3 px-4">Tiket Terjual</th>
+                  <th className="py-3 px-4">Pendapatan</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/60">
                 {events.map((event: any) => (
-                  <tr key={event.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--background)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                    <td style={{ padding: '13px 16px' }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: 2 }}>{event.title}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{event.venue_name} · {event.venue_city}</div>
+                  <tr key={event.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3.5 px-4 sm:px-6">
+                      <div className="font-semibold text-text-primary mb-0.5">{event.title}</div>
+                      <div className="text-[11px] text-text-muted">
+                        {event.venue_name} · {event.venue_city}
+                      </div>
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                      {event.event_date ? new Date(event.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                    <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">
+                      {event.event_date
+                        ? new Date(event.event_date).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : '-'}
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <td className="py-3.5 px-4 font-semibold text-text-primary">
                       {(event.tickets_sold ?? 0).toLocaleString('id-ID')}
                     </td>
-                    <td style={{ padding: '13px 16px', fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                      {fmt(Number(event.revenue ?? 0))}
+                    <td className="py-3.5 px-4 font-bold text-primary">
+                      {formatRupiah(Number(event.revenue ?? 0))}
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
+                    <td className="py-3.5 px-4">
                       <EventStatusBadge status={event.status} />
                     </td>
-                    <td style={{ padding: '13px 16px' }}>
-                      <Link href={`/organizer/events`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '0.78rem', textDecoration: 'none', fontWeight: 600 }}>
-                        <Eye size={12} /> Kelola
+                    <td className="py-3.5 px-4 text-right">
+                      <Link href="/organizer/events">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
+                          className="text-xs text-text-secondary hover:text-text-primary"
+                        >
+                          Kelola
+                        </Button>
                       </Link>
                     </td>
                   </tr>
@@ -210,53 +200,61 @@ export default function OrganizerDashboard() {
             </table>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <Calendar size={32} style={{ margin: '0 auto 12px', color: 'var(--text-muted)', opacity: 0.4 }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 16 }}>Belum ada event yang dibuat</p>
-            <Link href="/organizer/events/create" className="btn btn-primary btn-sm">
-              + Buat Event Pertama
-            </Link>
-          </div>
+          <EmptyState
+            title="Belum Ada Event"
+            description="Mulai publikasikan konser atau festival perdana Anda sekarang."
+            action={
+              <Link href="/organizer/events/create">
+                <Button variant="primary" size="sm">
+                  + Buat Event Pertama
+                </Button>
+              </Link>
+            }
+            className="py-12"
+          />
         )}
-      </motion.div>
+      </Card>
 
-      {/* Recent Orders */}
+      {/* Recent Orders Table */}
       {overview?.recent_orders?.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <BarChart3 size={15} style={{ color: 'var(--color-primary)' }} />
-            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Pesanan Terbaru</span>
+        <Card variant="default" className="overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-border flex items-center gap-2 font-bold text-sm sm:text-base text-text-primary">
+            <BarChart3 className="w-4 h-4 text-accent" />
+            <span>Pesanan Terbaru</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--background)' }}>
-                  {['Order #', 'Pembeli', 'Event', 'Total', 'Status'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-surface/60 border-b border-border text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                <tr>
+                  <th className="py-3 px-4 sm:px-6">Order #</th>
+                  <th className="py-3 px-4">Pembeli</th>
+                  <th className="py-3 px-4">Event</th>
+                  <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border/60">
                 {overview.recent_orders.map((order: any) => (
-                  <tr key={order.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 600, fontFamily: 'monospace' }}>
+                  <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3.5 px-4 sm:px-6 font-mono text-xs font-semibold text-primary">
                       #{order.order_number ?? order.id}
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>{order.user?.name ?? 'N/A'}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{order.event?.title ?? 'N/A'}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                      {fmt(Number(order.total_amount ?? 0))}
+                    <td className="py-3.5 px-4 text-text-primary font-medium">
+                      {order.user?.name ?? 'N/A'}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <StatusBadge status={order.status} />
+                    <td className="py-3.5 px-4 text-text-secondary">{order.event?.title ?? 'N/A'}</td>
+                    <td className="py-3.5 px-4 font-bold text-text-primary">
+                      {formatRupiah(Number(order.total_amount ?? 0))}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <TicketStatusBadge status={order.status} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </Card>
       )}
     </div>
   );

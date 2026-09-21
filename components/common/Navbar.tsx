@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Menu, X, User as UserIcon, LogOut, Ticket, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { Button } from '@/components/ui';
+import { PageContainer } from '@/components/layout';
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -21,98 +23,153 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav style={{
-      position: 'fixed', top: 0, width: '100%', zIndex: 50, transition: 'all 0.3s',
-      background: isScrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.85)',
-      backdropFilter: 'blur(16px)',
-      borderBottom: '1px solid var(--border)',
-      boxShadow: isScrolled ? '0 4px 20px rgba(0,0,0,0.05)' : 'none',
-    }}>
-      <div className="container">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-              <Ticket size={28} style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>TIXORA</span>
+    <nav
+      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 border-b ${
+        isScrolled
+          ? 'bg-surface/90 backdrop-blur-xl border-border shadow-lg shadow-black/20'
+          : 'bg-surface/75 backdrop-blur-md border-border/60'
+      }`}
+    >
+      <PageContainer size="lg">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center gap-2.5 text-decoration-none group">
+              <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                <Ticket className="w-5 h-5" />
+              </div>
+              <span className="text-xl font-black tracking-tight text-white group-hover:text-primary transition-colors">
+                TIXORA
+              </span>
             </Link>
           </div>
-          
+
           {/* Desktop Menu */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="desktop-menu">
-            <Link href="/" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 600, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>Beranda</Link>
-            <Link href="/events" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 600, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>Events</Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Beranda
+            </Link>
+            <Link
+              href="/events"
+              className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Events
+            </Link>
             {user && (user.role === 'organizer' || user.role === 'super_admin') && (
-              <Link href="/organizer/dashboard" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 600, transition: 'color 0.2s', display: 'flex', alignItems: 'center', gap: 6 }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>
-                <LayoutDashboard size={15} /> Panel Organizer
+              <Link
+                href="/organizer/dashboard"
+                className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1.5"
+              >
+                <LayoutDashboard className="w-4 h-4 text-primary" /> Panel Organizer
               </Link>
             )}
-            <Link href="/become-organizer" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 700, border: '1.5px solid var(--color-primary)', borderRadius: 8, padding: '6px 14px', transition: 'all 0.2s', fontSize: '0.875rem' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = 'white'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-primary)'; }}>Jadi Organizer</Link>
-            
+
+            <Link href="/become-organizer">
+              <Button variant="outline" size="sm" className="font-semibold text-xs border-primary/40 hover:border-primary text-primary hover:bg-primary/10">
+                Jadi Organizer
+              </Button>
+            </Link>
+
             {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative' }}>
-                <div style={{ position: 'relative' }}>
-                  <button 
-                    onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false); }}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative', display: 'flex' }} 
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'} 
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              <div className="flex items-center gap-4 relative">
+                {/* Notification Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setNotificationsOpen(!notificationsOpen);
+                      setProfileOpen(false);
+                    }}
+                    className="p-2 text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors relative"
+                    aria-label="Notifikasi"
                   >
-                    <Bell size={20} />
-                    <span style={{ position: 'absolute', top: 0, right: 0, width: 8, height: 8, background: 'var(--color-secondary)', borderRadius: '50%' }}></span>
+                    <Bell className="w-5 h-5" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full ring-2 ring-surface animate-pulse" />
                   </button>
 
                   <AnimatePresence>
                     {notificationsOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        style={{ position: 'absolute', right: -60, top: '100%', marginTop: 16, width: 300, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 100 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-[-40px] sm:right-0 top-full mt-3 w-80 bg-card border border-border rounded-xl p-4 shadow-2xl z-50"
                       >
-                        <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Notifikasi</h4>
-                        <div style={{ height: 1, background: 'var(--border)', margin: '0 -16px 12px -16px' }} />
-                        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-muted)' }}>
-                          <Bell size={32} style={{ opacity: 0.2, margin: '0 auto 8px auto' }} />
-                          <p style={{ fontSize: '0.8rem', margin: 0 }}>Belum ada notifikasi baru</p>
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-border">
+                          <h4 className="text-sm font-semibold text-text-primary">Notifikasi</h4>
+                          <span className="text-[11px] text-text-muted">Tandai sudah dibaca</span>
+                        </div>
+                        <div className="text-center py-6 text-text-muted flex flex-col items-center justify-center">
+                          <Bell className="w-8 h-8 opacity-20 mb-2" />
+                          <p className="text-xs">Belum ada notifikasi baru</p>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-                
-                <div style={{ position: 'relative' }}>
-                  <button 
-                    onClick={() => { setProfileOpen(!profileOpen); setNotificationsOpen(false); }}
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+
+                {/* Profile Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setProfileOpen(!profileOpen);
+                      setNotificationsOpen(false);
+                    }}
+                    className="flex items-center gap-2 p-1 rounded-full border border-border/80 hover:border-primary/50 transition-colors focus:outline-none"
+                    aria-label="User Profile"
                   >
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', fontWeight: 700, color: 'white' }}>
-                      {user.name.charAt(0)}
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                      {user.name.charAt(0).toUpperCase()}
                     </div>
                   </button>
-                  
+
                   <AnimatePresence>
                     {profileOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        style={{ position: 'absolute', right: 0, top: '100%', marginTop: 8, width: 192, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 8, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', zIndex: 100 }}
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-3 w-56 bg-card border border-border rounded-xl p-1.5 shadow-2xl z-50"
                       >
-                        <Link href={user.role === 'organizer' ? '/organizer/dashboard' : user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: '0.875rem', color: 'var(--text-secondary)', textDecoration: 'none', borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-hover)'; e.currentTarget.style.color = 'var(--color-primary)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-                          <UserIcon size={16} style={{ marginRight: 8 }} /> Dashboard
+                        <div className="px-3 py-2 border-b border-border mb-1">
+                          <p className="text-xs font-bold text-text-primary truncate">{user.name}</p>
+                          <p className="text-[11px] text-text-muted truncate">{user.email}</p>
+                        </div>
+                        <Link
+                          href={
+                            user.role === 'organizer'
+                              ? '/organizer/dashboard'
+                              : user.role === 'admin'
+                              ? '/admin/dashboard'
+                              : '/dashboard'
+                          }
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                          onClick={() => setProfileOpen(false)}
+                        >
+                          <UserIcon className="w-4 h-4 text-primary" /> Dashboard
                         </Link>
                         {user.role === 'user' && (
-                          <Link href="/dashboard/tickets" style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', fontSize: '0.875rem', color: 'var(--text-secondary)', textDecoration: 'none', borderRadius: 8, transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--card-hover)'; e.currentTarget.style.color = 'var(--color-primary)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}>
-                            <Ticket size={16} style={{ marginRight: 8 }} /> Tiket Saya
+                          <Link
+                            href="/dashboard/tickets"
+                            className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors"
+                            onClick={() => setProfileOpen(false)}
+                          >
+                            <Ticket className="w-4 h-4 text-accent" /> Tiket Saya
                           </Link>
                         )}
-                        <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
-                        <button 
-                          onClick={logout}
-                          style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '10px 16px', fontSize: '0.875rem', color: 'var(--danger)', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: 8, transition: 'all 0.2s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--danger-bg)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        <div className="my-1 border-t border-border" />
+                        <button
+                          onClick={() => {
+                            setProfileOpen(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-danger hover:bg-danger/10 rounded-lg transition-colors text-left"
                         >
-                          <LogOut size={16} style={{ marginRight: 8 }} /> Logout
+                          <LogOut className="w-4 h-4" /> Logout
                         </button>
                       </motion.div>
                     )}
@@ -120,51 +177,99 @@ export function Navbar() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <Link href="/login" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 600, transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}>Login</Link>
-                <Link href="/register" className="btn btn-primary btn-sm">
-                  Register
+              <div className="flex items-center gap-3">
+                <Link href="/login">
+                  <Button variant="ghost" size="sm" className="text-xs font-semibold text-text-secondary hover:text-text-primary">
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button variant="primary" size="sm" className="text-xs font-semibold shadow-md shadow-primary/20">
+                    Register
+                  </Button>
                 </Link>
               </div>
             )}
           </div>
 
-          <div className="mobile-menu-btn" style={{ display: 'none' }}>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-text-secondary hover:text-text-primary rounded-lg focus:outline-none"
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
-      </div>
+      </PageContainer>
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @media (max-width: 768px) {
-          .desktop-menu { display: none !important; }
-          .mobile-menu-btn { display: flex !important; }
-        }
-      `}} />
+      {/* Mobile Menu Content */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: 'hidden', background: 'var(--card)', margin: '0 8px 8px', borderRadius: 12, border: '1px solid var(--border)' }}
+            className="md:hidden overflow-hidden bg-card/95 backdrop-blur-xl border-b border-border px-4 py-3"
           >
-            <div style={{ padding: '8px 8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <Link href="/" style={{ padding: '12px 16px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, borderRadius: 8 }}>Beranda</Link>
-              <Link href="/events" style={{ padding: '12px 16px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, borderRadius: 8 }}>Events</Link>
-              <Link href="/become-organizer" style={{ padding: '12px 16px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 600, borderRadius: 8 }}>Jadi Organizer</Link>
+            <div className="flex flex-col gap-1.5">
+              <Link
+                href="/"
+                className="px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Beranda
+              </Link>
+              <Link
+                href="/events"
+                className="px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Events
+              </Link>
+              <Link
+                href="/become-organizer"
+                className="px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Jadi Organizer
+              </Link>
               {user && (user.role === 'organizer' || user.role === 'super_admin') && (
-                <Link href="/organizer/dashboard" style={{ padding: '12px 16px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <LayoutDashboard size={15} /> Panel Organizer
+                <Link
+                  href="/organizer/dashboard"
+                  className="px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-primary" /> Panel Organizer
                 </Link>
               )}
-              {!user && (
-                <>
-                  <Link href="/login" style={{ padding: '12px 16px', color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 500, borderRadius: 8 }}>Login</Link>
-                  <Link href="/register" style={{ padding: '12px 16px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 500, borderRadius: 8 }}>Register</Link>
-                </>
+              {!user ? (
+                <div className="pt-2 border-t border-border flex flex-col gap-2 mt-2">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="sm" fullWidth>
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="primary" size="sm" fullWidth>
+                      Register
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-border mt-2">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full px-3 py-2.5 text-sm font-medium text-danger hover:bg-danger/10 rounded-lg flex items-center gap-2 text-left"
+                  >
+                    <LogOut className="w-4 h-4" /> Logout ({user.name})
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>

@@ -2,34 +2,35 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  ShieldCheck, Clock, ArrowLeft, Ticket, User, Mail,
-  Phone, CreditCard, ChevronRight, AlertTriangle, Loader2
+  ShieldCheck, ArrowLeft, Ticket, User,
+  ChevronRight
 } from 'lucide-react';
 import { apiService } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
-import type { Event, TicketCategory, SeatNode } from '@/types';
-
-function formatRupiah(amount: number) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
+import type { Event, TicketCategory } from '@/types';
+import {
+  Button,
+  Card,
+  Input,
+  FormField,
+  Alert,
+  LoadingState,
+} from '@/components/ui';
+import { PageContainer } from '@/components/layout';
+import { formatRupiah } from '@/lib/utils';
 
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, token } = useAuthStore();
 
-  const eventId     = searchParams.get('event');
-  const catId       = searchParams.get('cat');
-  const seatsParam  = searchParams.get('seats');
-  const sessionId   = searchParams.get('session_id') || '';
-  const queueToken  = searchParams.get('queue_token');
+  const eventId = searchParams.get('event');
+  const catId = searchParams.get('cat');
+  const seatsParam = searchParams.get('seats');
+  const sessionId = searchParams.get('session_id') || '';
+  const queueToken = searchParams.get('queue_token');
 
   const [event, setEvent] = useState<Event | null>(null);
   const [selectedCat, setSelectedCat] = useState<TicketCategory | null>(null);
@@ -100,12 +101,14 @@ function CheckoutContent() {
         setQuantity(matchedSeats.length || 1);
 
         // Adjust attendees array size
-        setAttendees(Array.from({ length: matchedSeats.length || 1 }, (_, i) => ({
-          name: i === 0 && user ? user.name : '',
-          email: i === 0 && user ? user.email : '',
-          phone: i === 0 && user ? user.phone || '' : '',
-          id_number: i === 0 && user ? user.id_number || '' : '',
-        })));
+        setAttendees(
+          Array.from({ length: matchedSeats.length || 1 }, (_, i) => ({
+            name: i === 0 && user ? user.name : '',
+            email: i === 0 && user ? user.email : '',
+            phone: i === 0 && user ? user.phone || '' : '',
+            id_number: i === 0 && user ? user.id_number || '' : '',
+          }))
+        );
       }
       // Mode B: Ticket Category selection
       else if (catId) {
@@ -137,13 +140,15 @@ function CheckoutContent() {
   };
 
   // Compute pricing
-  const subtotal = seatsParam && seatNodes.length > 0
-    ? seatNodes.reduce((sum, s) => sum + (Number(s.price) || 0), 0)
-    : (Number(selectedCat?.price || 0) * quantity);
+  const subtotal =
+    seatsParam && seatNodes.length > 0
+      ? seatNodes.reduce((sum, s) => sum + (Number(s.price) || 0), 0)
+      : Number(selectedCat?.price || 0) * quantity;
 
-  const serviceFee = seatsParam && seatNodes.length > 0
-    ? seatNodes.reduce((sum, s) => sum + (Number(s.service_fee) || 0), 0)
-    : (Number(selectedCat?.service_fee || 0) * quantity);
+  const serviceFee =
+    seatsParam && seatNodes.length > 0
+      ? seatNodes.reduce((sum, s) => sum + (Number(s.service_fee) || 0), 0)
+      : Number(selectedCat?.service_fee || 0) * quantity;
 
   const totalAmount = subtotal + serviceFee;
 
@@ -182,16 +187,18 @@ function CheckoutContent() {
           attendees: g.attendees,
         }));
       } else if (selectedCat) {
-        orderItems = [{
-          ticket_category_id: selectedCat.id,
-          quantity: quantity,
-          attendees: attendees.map((att) => ({
-            name: att.name || user?.name,
-            email: att.email || user?.email,
-            phone: att.phone || user?.phone,
-            id_number: att.id_number || user?.id_number,
-          })),
-        }];
+        orderItems = [
+          {
+            ticket_category_id: selectedCat.id,
+            quantity: quantity,
+            attendees: attendees.map((att) => ({
+              name: att.name || user?.name,
+              email: att.email || user?.email,
+              phone: att.phone || user?.phone,
+              id_number: att.id_number || user?.id_number,
+            })),
+          },
+        ];
       } else {
         throw new Error('Kategori tiket atau kursi belum dipilih.');
       }
@@ -221,197 +228,148 @@ function CheckoutContent() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <Loader2 size={36} className="animate-spin" style={{ color: '#6366F1' }} />
-        <p style={{ color: 'rgba(255,255,255,0.6)' }}>Menyiapkan form checkout...</p>
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <LoadingState message="Menyiapkan form checkout..." />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '30px 20px 100px 20px', maxWidth: 1000, margin: '0 auto' }}>
+    <PageContainer size="md" className="py-8 sm:py-12">
       {/* ─── Header Navigation ─── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <button
+      <div className="flex items-center justify-between mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => router.back()}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '0.85rem' }}
+          leftIcon={<ArrowLeft className="w-4 h-4" />}
+          className="text-text-secondary hover:text-text-primary px-0"
         >
-          <ArrowLeft size={16} />
-          <span>Kembali</span>
-        </button>
+          Kembali
+        </Button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '6px 12px', borderRadius: 20 }}>
-          <ShieldCheck size={14} />
+        <div className="flex items-center gap-1.5 text-xs text-success bg-success/10 border border-success/20 px-3 py-1.5 rounded-full font-medium">
+          <ShieldCheck className="w-4 h-4" />
           <span>Checkout Terenkripsi 256-bit</span>
         </div>
       </div>
 
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            padding: '12px 18px', borderRadius: 12, marginBottom: 20,
-            background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#EF4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10,
-          }}
-        >
-          <AlertTriangle size={16} />
-          <span>{error}</span>
-        </motion.div>
+        <Alert variant="danger" title="Terjadi Kendala" className="mb-6">
+          {error}
+        </Alert>
       )}
 
-      <form onSubmit={handleCreateOrder} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+      <form onSubmit={handleCreateOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ─── LEFT COLUMN: Attendee Details ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{
-            padding: 24, borderRadius: 18,
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'white' }}>
-              <User size={18} style={{ color: '#6366F1' }} />
+        <div className="lg:col-span-7 space-y-6">
+          <Card variant="default" className="p-6">
+            <h2 className="text-base sm:text-lg font-extrabold text-text-primary mb-6 flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
               Informasi Pemesan & Pengunjung
             </h2>
 
-            {attendees.map((att, idx) => (
-              <div
-                key={idx}
-                style={{
-                  marginBottom: idx < attendees.length - 1 ? 20 : 0,
-                  paddingBottom: idx < attendees.length - 1 ? 20 : 0,
-                  borderBottom: idx < attendees.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                }}
-              >
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6366F1', marginBottom: 12 }}>
-                  Tiket #{idx + 1} {seatNodes[idx] ? `(${seatNodes[idx].label})` : ''}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 6 }}>
-                      Nama Lengkap (Sesuai KTP)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={att.name}
-                      onChange={(e) => handleAttendeeChange(idx, 'name', e.target.value)}
-                      placeholder="Contoh: Budi Santoso"
-                      style={{
-                        width: '100%', padding: '10px 14px', borderRadius: 10,
-                        background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'white', fontSize: '0.88rem',
-                      }}
-                    />
+            <div className="space-y-6 divide-y divide-border">
+              {attendees.map((att, idx) => (
+                <div key={idx} className={idx > 0 ? 'pt-6' : ''}>
+                  <div className="text-xs font-bold text-primary mb-4 uppercase tracking-wider">
+                    Tiket #{idx + 1} {seatNodes[idx] ? `(${seatNodes[idx].label})` : ''}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 6 }}>
-                        Email
-                      </label>
-                      <input
-                        type="email"
+                  <div className="space-y-4">
+                    <FormField label="Nama Lengkap (Sesuai KTP)" required>
+                      <Input
+                        type="text"
                         required
-                        value={att.email}
-                        onChange={(e) => handleAttendeeChange(idx, 'email', e.target.value)}
-                        placeholder="nama@email.com"
-                        style={{
-                          width: '100%', padding: '10px 14px', borderRadius: 10,
-                          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                          color: 'white', fontSize: '0.88rem',
-                        }}
+                        value={att.name}
+                        onChange={(e) => handleAttendeeChange(idx, 'name', e.target.value)}
+                        placeholder="Contoh: Budi Santoso"
                       />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 6 }}>
-                        Nomor WhatsApp
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={att.phone}
-                        onChange={(e) => handleAttendeeChange(idx, 'phone', e.target.value)}
-                        placeholder="08123456789"
-                        style={{
-                          width: '100%', padding: '10px 14px', borderRadius: 10,
-                          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                          color: 'white', fontSize: '0.88rem',
-                        }}
-                      />
-                    </div>
-                  </div>
+                    </FormField>
 
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 6 }}>
-                      Nomor KTP / Paspor
-                    </label>
-                    <input
-                      type="text"
-                      value={att.id_number}
-                      onChange={(e) => handleAttendeeChange(idx, 'id_number', e.target.value)}
-                      placeholder="3171xxxxxxxxxxxx"
-                      style={{
-                        width: '100%', padding: '10px 14px', borderRadius: 10,
-                        background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)',
-                        color: 'white', fontSize: '0.88rem',
-                      }}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField label="Email" required>
+                        <Input
+                          type="email"
+                          required
+                          value={att.email}
+                          onChange={(e) => handleAttendeeChange(idx, 'email', e.target.value)}
+                          placeholder="nama@email.com"
+                        />
+                      </FormField>
+
+                      <FormField label="Nomor WhatsApp" required>
+                        <Input
+                          type="tel"
+                          required
+                          value={att.phone}
+                          onChange={(e) => handleAttendeeChange(idx, 'phone', e.target.value)}
+                          placeholder="08123456789"
+                        />
+                      </FormField>
+                    </div>
+
+                    <FormField label="Nomor KTP / Paspor">
+                      <Input
+                        type="text"
+                        value={att.id_number}
+                        onChange={(e) => handleAttendeeChange(idx, 'id_number', e.target.value)}
+                        placeholder="3171xxxxxxxxxxxx"
+                      />
+                    </FormField>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Card>
         </div>
 
         {/* ─── RIGHT COLUMN: Order Summary ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{
-            padding: 24, borderRadius: 18,
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, color: 'white' }}>
-              <Ticket size={18} style={{ color: '#EC4899' }} />
+        <div className="lg:col-span-5">
+          <Card variant="elevated" className="p-6 sticky top-24 border-border/80 shadow-xl">
+            <h2 className="text-base sm:text-lg font-extrabold text-text-primary mb-4 flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-accent" />
               Ringkasan Pesanan
             </h2>
 
             {event && (
-              <div style={{ paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{ fontWeight: 800, fontSize: '1rem', color: 'white', marginBottom: 4 }}>
-                  {event.title}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+              <div className="pb-4 mb-4 border-b border-border">
+                <div className="font-bold text-sm text-text-primary mb-1">{event.title}</div>
+                <div className="text-xs text-text-muted">
                   {new Date(event.event_date).toLocaleDateString('id-ID', { dateStyle: 'full' })}
                 </div>
               </div>
             )}
 
             {/* Selected Seats Breakdown or Category */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            <div className="space-y-2.5 mb-6 text-xs sm:text-sm">
               {seatsParam && seatNodes.length > 0 ? (
                 <>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                  <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
                     Kursi Terpilih ({seatNodes.length}):
                   </div>
                   {seatNodes.map((seat) => (
-                    <div
-                      key={seat.id}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}
-                    >
-                      <span style={{ color: 'white' }}>{seat.label} ({seat.section_name})</span>
-                      <span style={{ fontWeight: 700, color: 'white' }}>{formatRupiah(seat.price)}</span>
+                    <div key={seat.id} className="flex justify-between items-center">
+                      <span className="text-text-secondary">
+                        {seat.label} ({seat.section_name})
+                      </span>
+                      <span className="font-bold text-text-primary">{formatRupiah(seat.price)}</span>
                     </div>
                   ))}
                 </>
               ) : selectedCat ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'white' }}>{selectedCat.name} × {quantity}</span>
-                  <span style={{ fontWeight: 700, color: 'white' }}>{formatRupiah(Number(selectedCat.price) * quantity)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-text-secondary">
+                    {selectedCat.name} × {quantity}
+                  </span>
+                  <span className="font-bold text-text-primary">
+                    {formatRupiah(Number(selectedCat.price) * quantity)}
+                  </span>
                 </div>
               ) : null}
 
               {serviceFee > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+                <div className="flex justify-between items-center text-text-muted pt-2 border-t border-border/40">
                   <span>Biaya Layanan</span>
                   <span>{formatRupiah(serviceFee)}</span>
                 </div>
@@ -419,50 +377,38 @@ function CheckoutContent() {
             </div>
 
             {/* Grand Total */}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: 24,
-            }}>
-              <span style={{ fontWeight: 700, color: 'white' }}>Total Pembayaran</span>
-              <span style={{ fontWeight: 900, fontSize: '1.3rem', color: '#10B981' }}>
-                {formatRupiah(totalAmount)}
-              </span>
+            <div className="flex justify-between items-center pt-4 border-t border-border mb-6">
+              <span className="font-bold text-sm text-text-primary">Total Pembayaran</span>
+              <span className="font-extrabold text-xl text-success">{formatRupiah(totalAmount)}</span>
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={creating}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12,
-                background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
-                color: 'white', fontWeight: 800, fontSize: '0.95rem',
-                border: 'none', cursor: creating ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: '0 4px 20px rgba(99,102,241,0.4)', opacity: creating ? 0.7 : 1,
-              }}
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={creating}
+              rightIcon={<ChevronRight className="w-5 h-5" />}
+              className="font-bold shadow-lg shadow-primary/25"
             >
-              {creating ? (
-                <>Memproses Pesanan...</>
-              ) : (
-                <>
-                  Lanjut ke Pembayaran <ChevronRight size={18} />
-                </>
-              )}
-            </button>
-          </div>
+              {creating ? 'Memproses Pesanan...' : 'Lanjut ke Pembayaran'}
+            </Button>
+          </Card>
         </div>
       </form>
-    </div>
+    </PageContainer>
   );
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 size={36} className="animate-spin" style={{ color: '#6366F1' }} />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-[80vh] flex items-center justify-center">
+          <LoadingState message="Menyiapkan checkout..." />
+        </div>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   );

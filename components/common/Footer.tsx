@@ -1,48 +1,44 @@
 'use client';
 import Link from 'next/link';
 import { Globe, MessageCircle, Play, Music, Mail, Ticket, Zap } from 'lucide-react';
+import { PageContainer } from '@/components/layout';
+import { Button } from '@/components/ui';
 
 export function Footer() {
   return (
-    <footer style={{ background: 'var(--card)', borderTop: '1px solid var(--border)', paddingTop: 64, paddingBottom: 32, position: 'relative', overflow: 'hidden' }}>
-      {/* Light border top line */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'var(--color-primary)' }} />
+    <footer className="bg-card border-t border-border pt-16 pb-8 relative overflow-hidden">
+      {/* Decorative top gradient accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
 
-      <div className="container">
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 48, marginBottom: 48 }}>
-
-          {/* Brand */}
-          <div>
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, textDecoration: 'none' }}>
-              <Ticket className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                TIXORA
-              </span>
+      <PageContainer size="lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+          {/* Brand & Socials */}
+          <div className="lg:col-span-2">
+            <Link href="/" className="inline-flex items-center gap-2.5 mb-4 group">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                <Ticket className="w-4 h-4" />
+              </div>
+              <span className="text-xl font-extrabold text-white tracking-tight">TIXORA</span>
             </Link>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 24, maxWidth: 280 }}>
-              Platform ticketing konser dan event terpercaya #1 Indonesia. Aman, cepat, dan transparan.
+            <p className="text-sm text-text-secondary leading-relaxed mb-6 max-w-sm">
+              Platform ticketing konser dan event terpercaya #1 Indonesia. Aman, cepat, dan transparan dengan sistem antrean anti-bot dan seat selection interaktif.
             </p>
-            {/* Social links */}
-            <div style={{ display: 'flex', gap: 12 }}>
+
+            {/* Social Links */}
+            <div className="flex items-center gap-3">
               {[
-                { icon: Globe,         href: '#', label: 'Website' },
+                { icon: Globe, href: '#', label: 'Website' },
                 { icon: MessageCircle, href: '#', label: 'Twitter/X' },
-                { icon: Play,          href: '#', label: 'YouTube' },
-                { icon: Music,         href: '#', label: 'TikTok' },
+                { icon: Play, href: '#', label: 'YouTube' },
+                { icon: Music, href: '#', label: 'TikTok' },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
-                  style={{
-                    width: 38, height: 38, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-secondary)',
-                    transition: 'all 0.2s', textDecoration: 'none',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.color = 'white'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--background)'; (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-surface border border-border text-text-secondary hover:text-white hover:bg-primary hover:border-primary transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
                 >
-                  <Icon size={16} />
+                  <Icon className="w-4 h-4" />
                 </a>
               ))}
             </div>
@@ -50,18 +46,20 @@ export function Footer() {
 
           {/* Explore */}
           <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Jelajahi</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary mb-4">
+              Jelajahi
+            </h4>
+            <ul className="space-y-2.5">
               {[
-                { href: '/events',                    label: 'Semua Events' },
-                { href: '/events?category=concert',   label: 'Concert' },
-                { href: '/events?category=festival',  label: 'Festival' },
-                { href: '/events?war_ticket=true',    label: 'War Ticket' },
+                { href: '/events', label: 'Semua Events' },
+                { href: '/events?category=concert', label: 'Concert' },
+                { href: '/events?category=festival', label: 'Festival' },
+                { href: '/events?war_ticket=true', label: 'War Ticket' },
               ].map(({ href, label }) => (
                 <li key={href}>
-                  <Link href={href} style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textDecoration: 'none', transition: 'color 0.2s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-primary)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
+                  <Link
+                    href={href}
+                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                   >
                     {label}
                   </Link>
@@ -70,10 +68,12 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* For Organizers */}
+          {/* Organizer */}
           <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Organizer</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary mb-4">
+              Organizer
+            </h4>
+            <ul className="space-y-2.5">
               {[
                 { href: '/organizer/dashboard', label: 'Dashboard' },
                 { href: '/organizer/events/create', label: 'Buat Event' },
@@ -81,9 +81,9 @@ export function Footer() {
                 { href: '/organizer/scanner', label: 'QR Scanner' },
               ].map(({ href, label }) => (
                 <li key={href}>
-                  <Link href={href} style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textDecoration: 'none', transition: 'color 0.2s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-primary)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
+                  <Link
+                    href={href}
+                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                   >
                     {label}
                   </Link>
@@ -94,18 +94,20 @@ export function Footer() {
 
           {/* Support */}
           <div>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Bantuan</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text-primary mb-4">
+              Bantuan
+            </h4>
+            <ul className="space-y-2.5">
               {[
-                { href: '/faq',     label: 'FAQ' },
-                { href: '/terms',   label: 'Syarat & Ketentuan' },
+                { href: '/faq', label: 'FAQ' },
+                { href: '/terms', label: 'Syarat & Ketentuan' },
                 { href: '/privacy', label: 'Kebijakan Privasi' },
                 { href: '/contact', label: 'Hubungi Kami' },
               ].map(({ href, label }) => (
                 <li key={href}>
-                  <Link href={href} style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textDecoration: 'none', transition: 'color 0.2s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-primary)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
+                  <Link
+                    href={href}
+                    className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                   >
                     {label}
                   </Link>
@@ -115,46 +117,42 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Newsletter */}
-        <div style={{
-          padding: '24px 28px', borderRadius: 16, marginBottom: 40,
-          background: 'var(--background)',
-          border: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
-        }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <Mail size={16} style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Dapatkan Info War Ticket Terbaru</span>
+        {/* Newsletter Box */}
+        <div className="p-6 sm:p-7 rounded-2xl bg-surface/60 border border-border flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+              <Mail className="w-5 h-5" />
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
-              Subscribe dan jangan pernah ketinggalan jadwal war ticket favoritmu.
-            </p>
+            <div>
+              <h5 className="text-sm font-bold text-text-primary mb-1">
+                Dapatkan Info War Ticket Terbaru
+              </h5>
+              <p className="text-xs text-text-secondary max-w-md">
+                Subscribe newsletter resmi kami dan jangan pernah ketinggalan jadwal war ticket konser artis favoritmu.
+              </p>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 240 }}>
+          <div className="w-full md:w-auto flex items-center gap-2 max-w-md">
             <input
               type="email"
               placeholder="email@kamu.com"
-              className="input"
-              style={{ flex: 1, borderRadius: '10px 0 0 10px', borderRight: 'none', background: 'var(--card)' }}
+              className="h-10 w-full md:w-64 px-3.5 text-xs rounded-xl bg-card border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
             />
-            <button className="btn btn-primary" style={{ borderRadius: '0 10px 10px 0', whiteSpace: 'nowrap' }}>
+            <Button variant="primary" size="sm" className="whitespace-nowrap shrink-0 text-xs">
               Subscribe
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>
-            © {new Date().getFullYear()} TIXORA. All rights reserved.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            <Zap size={12} style={{ color: 'var(--color-primary)' }} />
-            Made with passion for Indonesian concert fans
+        {/* Bottom Bar */}
+        <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
+          <p>© {new Date().getFullYear()} TIXORA. All rights reserved.</p>
+          <div className="flex items-center gap-2 text-text-secondary">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span>Made with passion for Indonesian concert fans</span>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </footer>
   );
 }
