@@ -79,7 +79,8 @@ export default function EventSeatsPage({ params }: { params: Promise<{ slug: str
         setCountdown(minRemaining);
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Gagal memuat peta kursi event.');
+      console.error('Error loading seat map:', err);
+      setError(err?.response?.data?.message || err?.message || 'Gagal memuat peta kursi event.');
     } finally {
       setLoading(false);
     }
