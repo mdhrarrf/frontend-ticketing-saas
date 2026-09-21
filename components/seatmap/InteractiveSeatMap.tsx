@@ -47,10 +47,188 @@ export function InteractiveSeatMap({
 
   const selectedSeatIds = useMemo(() => new Set(selectedSeats.map((s) => s.id)), [selectedSeats]);
 
-  const filteredSections = useMemo(() => {
-    if (activeSectionId === 'ALL') return seatMapData.sections;
-    return seatMapData.sections.filter((s) => s.id === activeSectionId);
-  }, [seatMapData.sections, activeSectionId]);
+  const layoutGroups = useMemo(() => {
+    if (activeSectionId !== 'ALL') {
+      return { hasWings: false, front: [], center: [], left: [], right: [], rear: [], unclassified: [], single: filteredSections };
+    }
+
+    const front: VenueSectionData[] = [];
+    const center: VenueSectionData[] = [];
+    const left: VenueSectionData[] = [];
+    const right: VenueSectionData[] = [];
+    const rear: VenueSectionData[] = [];
+    const unclassified: VenueSectionData[] = [];
+
+    seatMapData.sections.forEach((sec) => {
+      const name = sec.name.toLowerCase();
+      if (name.includes('front') || name.includes('vvip')) {
+        front.push(sec);
+      } else if (name.includes('left') || name.includes('kiri') || name.includes('west')) {
+        left.push(sec);
+      } else if (name.includes('right') || name.includes('kanan') || name.includes('east')) {
+        right.push(sec);
+      } else if (name.includes('center') || name.includes('gold') || name.includes('tengah')) {
+        center.push(sec);
+      } else if (name.includes('balcony') || name.includes('balkon') || name.includes('upper') || name.includes('tier 2')) {
+        rear.push(sec);
+      } else {
+        unclassified.push(sec);
+      }
+    });
+
+    const hasWings = left.length > 0 && right.length > 0;
+    return { hasWings, front, center, left, right, rear, unclassified, single: [] };
+  }, [seatMapData.sections, activeSectionId, filteredSections]);
+
+  const renderSectionBlock = (sec: VenueSectionData, isWing: boolean = false) => {
+    return (
+      <div
+        key={sec.id}
+        style={{
+          padding: isWing ? '16px 16px' : '20px 24px',
+          borderRadius: 16,
+          background: 'rgba(255,255,255,0.025)',
+          border: `1px solid ${sec.color}40`,
+          position: 'relative',
+          minWidth: isWing ? 290 : 360,
+          maxWidth: isWing ? '48%' : '95%',
+          boxShadow: `0 8px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05)`,
+          flex: isWing ? '1 1 320px' : undefined,
+          transition: 'all 0.25s ease',
+        }}
+      >
+        {/* Section Header */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid rgba(255,255,255,0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: sec.color, boxShadow: `0 0 10px ${sec.color}` }} />
+            <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'white', letterSpacing: '0.02em' }}>
+              {sec.name}
+            </span>
+          </div>
+          <span style={{
+            fontSize: '0.75rem', fontWeight: 800, color: sec.color,
+            background: `${sec.color}15`, padding: '3px 10px', borderRadius: 8,
+            border: `1px solid ${sec.color}30`
+          }}>
+            {formatRupiah(sec.category_price ?? 0)}
+          </span>
+        </div>
+
+        {/* Rows & Seat Nodes */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+          {sec.rows.map((row) => (
+            <div
+              key={row.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              {/* Left Row Indicator */}
+              <span style={{
+                width: 22, fontSize: '0.72rem', fontWeight: 800,
+                color: 'rgba(255,255,255,0.45)', textAlign: 'right', userSelect: 'none'
+              }}>
+                {row.row_label}
+              </span>
+
+              {/* Row Seats */}
+              <div style={{ display: 'flex', gap: 7, flexWrap: 'nowrap', alignItems: 'center' }}>
+                {row.seats.map((seat, seatIdx) => {
+                  const isSelected = selectedSeatIds.has(seat.id);
+                  const isSold = seat.status === 'SOLD';
+                  const isBlocked = seat.status === 'BLOCKED';
+                  const isLockedOther = seat.status === 'LOCKED' && !seat.is_mine && !isSelected;
+
+                  // Insert aisle separator in the middle of long rows
+                  const isAisleGap = row.seats.length > 8 && (seatIdx === Math.floor(row.seats.length / 2));
+
+                  let seatBg = `${sec.color}35`;
+                  let seatBorder = `1px solid ${sec.color}80`;
+                  let seatTextColor = '#FFFFFF';
+                  let cursor = 'pointer';
+                  let opacity = 1;
+
+                  if (isSelected) {
+                    seatBg = '#10B981';
+                    seatBorder = '2px solid #FFFFFF';
+                    seatTextColor = '#FFFFFF';
+                  } else if (isSold) {
+                    seatBg = 'rgba(255,255,255,0.08)';
+                    seatBorder = '1px solid rgba(255,255,255,0.05)';
+                    cursor = 'not-allowed';
+                    opacity = 0.35;
+                  } else if (isBlocked) {
+                    seatBg = 'rgba(239,68,68,0.2)';
+                    seatBorder = '1px solid #EF4444';
+                    cursor = 'not-allowed';
+                    opacity = 0.5;
+                  } else if (isLockedOther) {
+                    seatBg = '#F59E0B';
+                    seatBorder = '1px solid #D97706';
+                    cursor = 'not-allowed';
+                    opacity = 0.7;
+                  }
+
+                  return (
+                    <React.Fragment key={seat.id}>
+                      {isAisleGap && (
+                        <div
+                          style={{
+                            width: 10, height: 18, borderLeft: '1px dashed rgba(255,255,255,0.2)',
+                            margin: '0 2px'
+                          }}
+                          title="Lorong / Aisle"
+                        />
+                      )}
+                      <motion.button
+                        whileHover={!isSold && !isBlocked && !isLockedOther ? { scale: 1.2, y: -2 } : {}}
+                        whileTap={!isSold && !isBlocked && !isLockedOther ? { scale: 0.9 } : {}}
+                        onClick={() => {
+                          if (!isSold && !isBlocked && !isLockedOther) {
+                            onToggleSeat(seat);
+                          }
+                        }}
+                        onMouseEnter={() => setHoveredSeat(seat)}
+                        onMouseLeave={() => setHoveredSeat(null)}
+                        style={{
+                          width: 27, height: 27,
+                          borderRadius: '6px 6px 3px 3px',
+                          background: seatBg, border: seatBorder,
+                          color: isSold ? 'transparent' : seatTextColor,
+                          fontSize: '0.65rem', fontWeight: 800,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor, opacity, outline: 'none', position: 'relative',
+                          boxShadow: isSelected ? '0 0 12px #10B981, 0 2px 8px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.2)',
+                          transition: 'background-color 0.15s, border-color 0.15s',
+                        }}
+                      >
+                        {isSelected ? (
+                          <Check size={12} strokeWidth={3} />
+                        ) : isLockedOther ? (
+                          <Lock size={10} />
+                        ) : (
+                          seat.seat_number
+                        )}
+                      </motion.button>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Right Row Indicator */}
+              <span style={{
+                width: 22, fontSize: '0.72rem', fontWeight: 800,
+                color: 'rgba(255,255,255,0.45)', textAlign: 'left', userSelect: 'none'
+              }}>
+                {row.row_label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const subtotal = useMemo(() => {
     return selectedSeats.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
@@ -253,124 +431,52 @@ export function InteractiveSeatMap({
           transition: 'transform 0.2s ease-out', display: 'inline-block',
           minWidth: '100%',
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 36, alignItems: 'center' }}>
-            {filteredSections.map((sec) => (
-              <div
-                key={sec.id}
-                style={{
-                  padding: 20, borderRadius: 16,
-                  background: 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${sec.color}35`,
-                  position: 'relative', minWidth: 340, maxWidth: '95%',
-                }}
-              >
-                {/* Section Header */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32, alignItems: 'center' }}>
+            {layoutGroups.single.length > 0 ? (
+              // Single Section Focus Mode
+              layoutGroups.single.map((sec) => renderSectionBlock(sec))
+            ) : layoutGroups.hasWings ? (
+              // Amphitheater / Stadium Spatial Mode
+              <>
+                {/* 1. FRONT TIER (VIP Front) */}
+                {layoutGroups.front.map((sec) => renderSectionBlock(sec))}
+
+                {/* 2. CENTER TIER (VIP Gold Center) */}
+                {layoutGroups.center.map((sec) => renderSectionBlock(sec))}
+
+                {/* 3. WINGS TIER (Tribune Left & Tribune Right SIDE-BY-SIDE!) */}
                 <div style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.06)'
+                  display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
+                  alignItems: 'flex-start', gap: 24, width: '100%', maxWidth: 1000,
+                  position: 'relative'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: sec.color }} />
-                    <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'white' }}>{sec.name}</span>
+                  {layoutGroups.left.map((sec) => renderSectionBlock(sec, true))}
+
+                  {/* Central Aisle Pathway Visualizer */}
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    justifyContent: 'center', padding: '16px 8px', alignSelf: 'stretch',
+                    color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', fontWeight: 800,
+                    letterSpacing: '0.15em', textTransform: 'uppercase'
+                  }}>
+                    <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                      ║ LORONG UTAMA (AISLE) ║
+                    </span>
                   </div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: sec.color }}>
-                    {formatRupiah(sec.category_price ?? 0)}
-                  </span>
+
+                  {layoutGroups.right.map((sec) => renderSectionBlock(sec, true))}
                 </div>
 
-                {/* Rows & Seat Nodes */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-                  {sec.rows.map((row) => (
-                    <div
-                      key={row.id}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                    >
-                      {/* Left Row Indicator */}
-                      <span style={{
-                        width: 24, fontSize: '0.75rem', fontWeight: 800,
-                        color: 'rgba(255,255,255,0.4)', textAlign: 'right', userSelect: 'none'
-                      }}>
-                        {row.row_label}
-                      </span>
+                {/* 4. REAR TIER (Upper Balcony) */}
+                {layoutGroups.rear.map((sec) => renderSectionBlock(sec))}
 
-                      {/* Row Seats */}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'nowrap' }}>
-                        {row.seats.map((seat) => {
-                          const isSelected = selectedSeatIds.has(seat.id);
-                          const isSold = seat.status === 'SOLD';
-                          const isBlocked = seat.status === 'BLOCKED';
-                          const isLockedOther = seat.status === 'LOCKED' && !seat.is_mine && !isSelected;
-
-                          let seatBg = sec.color;
-                          let seatBorder = 'transparent';
-                          let cursor = 'pointer';
-                          let opacity = 1;
-
-                          if (isSelected) {
-                            seatBg = '#10B981';
-                            seatBorder = '2px solid #FFFFFF';
-                          } else if (isSold) {
-                            seatBg = 'rgba(255,255,255,0.12)';
-                            cursor = 'not-allowed';
-                            opacity = 0.4;
-                          } else if (isBlocked) {
-                            seatBg = 'rgba(239,68,68,0.2)';
-                            seatBorder = '1px solid #EF4444';
-                            cursor = 'not-allowed';
-                            opacity = 0.5;
-                          } else if (isLockedOther) {
-                            seatBg = '#F59E0B';
-                            cursor = 'not-allowed';
-                            opacity = 0.65;
-                          }
-
-                          return (
-                            <motion.button
-                              key={seat.id}
-                              whileHover={!isSold && !isBlocked && !isLockedOther ? { scale: 1.2 } : {}}
-                              whileTap={!isSold && !isBlocked && !isLockedOther ? { scale: 0.9 } : {}}
-                              onClick={() => {
-                                if (!isSold && !isBlocked && !isLockedOther) {
-                                  onToggleSeat(seat);
-                                }
-                              }}
-                              onMouseEnter={() => setHoveredSeat(seat)}
-                              onMouseLeave={() => setHoveredSeat(null)}
-                              style={{
-                                width: 26, height: 26, borderRadius: 6,
-                                background: seatBg, border: seatBorder,
-                                color: isSold ? 'transparent' : 'white',
-                                fontSize: '0.65rem', fontWeight: 700,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor, opacity, outline: 'none', position: 'relative',
-                                boxShadow: isSelected ? '0 0 10px #10B981' : 'none',
-                                transition: 'background-color 0.15s',
-                              }}
-                            >
-                              {isSelected ? (
-                                <Check size={12} strokeWidth={3} />
-                              ) : isLockedOther ? (
-                                <Lock size={10} />
-                              ) : (
-                                seat.seat_number
-                              )}
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Right Row Indicator */}
-                      <span style={{
-                        width: 24, fontSize: '0.75rem', fontWeight: 800,
-                        color: 'rgba(255,255,255,0.4)', textAlign: 'left', userSelect: 'none'
-                      }}>
-                        {row.row_label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                {/* Any unclassified sections */}
+                {layoutGroups.unclassified.map((sec) => renderSectionBlock(sec))}
+              </>
+            ) : (
+              // Standard Vertical Layout fallback
+              seatMapData.sections.map((sec) => renderSectionBlock(sec))
+            )}
           </div>
         </div>
 
