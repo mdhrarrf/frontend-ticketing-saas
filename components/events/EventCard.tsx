@@ -14,11 +14,21 @@ interface EventCardProps {
 
 const CATEGORY_LABELS: Record<string, string> = {
   concert: 'Concert',
+  konser: 'Concert',
   festival: 'Festival',
   fan_meeting: 'Fan Meeting',
+  fanmeeting: 'Fan Meeting',
   seminar: 'Seminar',
   sports: 'Sports',
+  olahraga: 'Sports',
   exhibition: 'Exhibition',
+  pameran: 'Exhibition',
+  music: 'Music',
+  musik: 'Music',
+  theater: 'Theater',
+  teater: 'Theater',
+  workshop: 'Workshop',
+  conference: 'Conference',
 };
 
 const GRADIENTS = [
@@ -31,6 +41,9 @@ const GRADIENTS = [
 
 function EventBanner({ event, index = 0 }: { event: Event; index?: number }) {
   const gradientClass = GRADIENTS[index % GRADIENTS.length];
+  const categoryName = event.category
+    ? (CATEGORY_LABELS[event.category.toLowerCase()] || event.category)
+    : 'Event';
 
   if (event.banner) {
     return (
@@ -50,7 +63,7 @@ function EventBanner({ event, index = 0 }: { event: Event; index?: number }) {
       <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-white/10 blur-lg" />
       <Ticket className="w-10 h-10 text-white/80 mb-2" />
       <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/70">
-        {CATEGORY_LABELS[event.category] ?? 'Event'}
+        {categoryName}
       </span>
     </div>
   );
@@ -62,11 +75,18 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
       ? Math.min(100, Math.round((event.total_sold / event.total_capacity) * 100))
       : 0;
   const isAlmostSoldOut = soldPercent >= 80;
+  const categoryDisplay = event.category?.trim()
+    ? (CATEGORY_LABELS[event.category.trim().toLowerCase()] || event.category.trim())
+    : null;
 
   return (
-    <Link href={`/events/${event.slug}`} className="block h-full group">
+    <Link
+      href={`/events/${event.slug}`}
+      className="group block h-full select-none focus:outline-none focus:ring-2 focus:ring-primary rounded-2xl"
+    >
       <Card
         variant="interactive"
+        padding="none"
         className="h-full flex flex-col overflow-hidden border-border/80 group-hover:border-primary/50 group-hover:shadow-xl group-hover:shadow-primary/5 transition-all duration-300"
       >
         {/* Banner Area */}
@@ -78,9 +98,11 @@ export function EventCard({ event, index = 0 }: EventCardProps) {
 
           {/* Badges Top */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap z-10">
-            <Badge variant="secondary" size="sm" className="bg-white/90 text-text-primary backdrop-blur-md shadow-sm">
-              {CATEGORY_LABELS[event.category] ?? event.category}
-            </Badge>
+            {categoryDisplay && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-black/60 text-white backdrop-blur-md border border-white/20 shadow-sm">
+                {categoryDisplay}
+              </span>
+            )}
 
             {event.is_war_ticket && (
               <Badge variant="warTicket" size="sm" className="shadow-md shadow-primary/30">

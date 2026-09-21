@@ -123,7 +123,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-2 max-w-xl mx-auto p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30 mb-8"
+              className="flex items-center gap-2 max-w-xl mx-auto p-1.5 sm:p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30 mb-8"
             >
               <div className="flex-1 flex items-center gap-3 pl-3">
                 <Search size={18} className="text-text-muted shrink-0" />
@@ -132,10 +132,10 @@ export default function HomePage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Cari konser, artis, atau venue..."
-                  className="w-full bg-transparent border-none outline-hidden text-sm text-text-primary placeholder:text-text-muted font-medium"
+                  className="w-full bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-medium py-2 focus:ring-0"
                 />
               </div>
-              <Button type="submit" variant="primary" size="md" className="rounded-xl px-5">
+              <Button type="submit" variant="primary" size="md" className="rounded-xl px-5 shrink-0 font-bold">
                 Cari
               </Button>
             </motion.form>
@@ -453,16 +453,26 @@ export default function HomePage() {
                 Bergabung dengan lebih dari 1 juta pengguna yang mempercayakan pembelian tiket konser favorit ke TIXORA.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                <Link href="/register">
-                  <button className="px-6 py-3 rounded-xl bg-white text-primary font-extrabold text-sm hover:bg-white/90 transition-all shadow-lg cursor-pointer">
-                    Daftar Gratis Sekarang <ArrowRight size={16} className="inline ml-1" />
-                  </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <Link href="/register" className="w-full sm:w-auto">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white hover:bg-white/90 text-primary font-black shadow-xl shadow-black/25 border-transparent cursor-pointer"
+                    rightIcon={<ArrowRight size={16} />}
+                  >
+                    Daftar Gratis Sekarang
+                  </Button>
                 </Link>
-                <Link href="/events">
-                  <button className="px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-extrabold text-sm transition-all cursor-pointer">
-                    Lihat Events <Play size={15} className="inline ml-1" />
-                  </button>
+                <Link href="/events" className="w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/10 hover:bg-white/20 border-white/30 text-white font-bold backdrop-blur-md cursor-pointer"
+                    rightIcon={<Play size={14} />}
+                  >
+                    Lihat Events
+                  </Button>
                 </Link>
               </div>
             </div>

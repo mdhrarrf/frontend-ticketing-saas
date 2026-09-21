@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Loader2, Mail, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { apiService } from '../../../lib/api';
+import { Button } from '@/components/ui';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -39,8 +40,10 @@ export default function ForgotPasswordPage() {
         <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem', lineHeight: 1.6 }}>
           Kami telah mengirimkan instruksi untuk mengatur ulang password ke <strong>{email}</strong>. Silakan periksa kotak masuk atau folder spam kamu.
         </p>
-        <Link href="/login" className="btn btn-primary" style={{ width: '100%', display: 'inline-flex', justifyContent: 'center' }}>
-          Kembali ke Login
+        <Link href="/login" className="block w-full">
+          <Button variant="primary" size="lg" className="w-full font-bold">
+            Kembali ke Login
+          </Button>
         </Link>
       </motion.div>
     );
@@ -87,9 +90,15 @@ export default function ForgotPasswordPage() {
           </motion.div>
         )}
 
-        <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: 8, fontSize: '1rem' }}>
-          {loading ? <><Loader2 size={18} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> Mengirim...</> : 'Kirim Link Reset'}
-        </button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full mt-2 font-bold text-base shadow-lg shadow-primary/25"
+          loading={loading}
+        >
+          Kirim Link Reset
+        </Button>
       </form>
     </motion.div>
   );

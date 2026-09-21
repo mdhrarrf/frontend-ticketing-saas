@@ -237,9 +237,11 @@ export default function EventDetailPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Badge variant="primary" size="md" className="uppercase font-bold tracking-wider">
-                  {event.category}
-                </Badge>
+                {event.category && (
+                  <Badge variant="primary" size="md" className="uppercase font-bold tracking-wider">
+                    {event.category}
+                  </Badge>
+                )}
                 {event.is_war_ticket && (
                   <Badge variant="warTicket" size="md" className="font-extrabold shadow-lg shadow-danger/25">
                     <Zap className="w-3.5 h-3.5 fill-current" /> WAR TICKET

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, Lock, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
 import { apiService } from '../../../lib/api';
+import { Button } from '@/components/ui';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -61,8 +62,10 @@ function ResetPasswordForm() {
         <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.9rem', lineHeight: 1.6 }}>
           Password kamu telah berhasil diperbarui. Silakan login menggunakan password baru kamu.
         </p>
-        <Link href="/login" className="btn btn-primary" style={{ width: '100%', display: 'inline-flex', justifyContent: 'center' }}>
-          Login Sekarang
+        <Link href="/login" className="block w-full">
+          <Button variant="primary" size="lg" className="w-full font-bold">
+            Login Sekarang
+          </Button>
         </Link>
       </motion.div>
     );
@@ -124,9 +127,15 @@ function ResetPasswordForm() {
           </motion.div>
         )}
 
-        <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: 8, fontSize: '1rem' }}>
-          {loading ? <><Loader2 size={18} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> Memproses...</> : 'Simpan Password Baru'}
-        </button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full mt-2 font-bold text-base shadow-lg shadow-primary/25"
+          loading={loading}
+        >
+          Simpan Password Baru
+        </Button>
       </form>
     </motion.div>
   );

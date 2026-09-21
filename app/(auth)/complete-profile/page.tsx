@@ -7,6 +7,7 @@ import { Loader2, Phone, CreditCard, Calendar, User as UserIcon, AlertTriangle, 
 import { useAuthStore } from '../../../store/authStore';
 import { apiService } from '../../../lib/api';
 import Link from 'next/link';
+import { Button } from '@/components/ui';
 
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -156,10 +157,16 @@ export default function CompleteProfilePage() {
           </motion.div>
         )}
 
-        <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: 8, fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-          {loading ? <Loader2 size={18} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> : 'Simpan & Lanjutkan'} 
-          {!loading && <ArrowRight size={18} />}
-        </button>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full mt-2 font-bold text-base shadow-lg shadow-primary/25"
+          loading={loading}
+          rightIcon={!loading ? <ArrowRight size={18} /> : undefined}
+        >
+          Simpan & Lanjutkan
+        </Button>
         
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button type="button" onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.875rem', cursor: 'pointer' }}>
