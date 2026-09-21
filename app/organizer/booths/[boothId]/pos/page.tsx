@@ -5,9 +5,14 @@ import Link from 'next/link';
 import {
   Store, ShoppingCart, Plus, Minus, Trash2, QrCode, Radio,
   ArrowLeft, RefreshCw, CheckCircle2, AlertCircle, Sparkles,
-  Camera, Volume2, ShieldCheck, Tag
+  Camera, Volume2, ShieldCheck, Tag, X
 } from 'lucide-react';
-import { apiService } from '../../../../../lib/api';
+import { apiService } from '@/lib/api';
+import { formatRupiah } from '@/lib/utils';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 
 interface PosPageProps {
   params: Promise<{ boothId: string }>;
@@ -21,7 +26,7 @@ export default function BoothPosPage({ params }: PosPageProps) {
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<{ [productId: number]: number }>({});
   const [loading, setLoading] = useState<boolean>(true);
-  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [activeTabMobile, setActiveTabMobile] = useState<'catalog' | 'cart'>('catalog');
 
   // Payment Modal State
   const [showPayModal, setShowPayModal] = useState<boolean>(false);
@@ -125,6 +130,7 @@ export default function BoothPosPage({ params }: PosPageProps) {
   });
 
   const cartTotal = cartItems.reduce((acc, item) => acc + item.subtotal, 0);
+  const totalItemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   // Initialize Camera Scanner for QR Wallet
   useEffect(() => {
@@ -143,9 +149,8 @@ export default function BoothPosPage({ params }: PosPageProps) {
 
           await html5QrCode.start(
             { facingMode: 'environment' },
-            { fps: 15, qrbox: { width: 240, height: 240 } },
+            { fps: 15, qrbox: { width: 220, height: 220 } },
             (decodedText: string) => {
-              // Found QR token!
               handleProcessPayment(decodedText);
               if (html5QrCode.isScanning) {
                 html5QrCode.stop().catch(() => {});
@@ -188,7 +193,7 @@ export default function BoothPosPage({ params }: PosPageProps) {
         }
       };
     } catch (err) {
-      setPayError('Izin NFC ditolak atau fitur NFC belum aktif pada HP Anda.');
+      setPayError('Izin NFC ditolak atau fitur NFC belum aktif pada perangkat ini.');
     }
   };
 
@@ -225,7 +230,7 @@ export default function BoothPosPage({ params }: PosPageProps) {
     } catch (err: any) {
       console.error('POS Payment Error', err);
       playSound(false);
-      setPayError(err?.response?.data?.message || 'Transaksi ditolak. Periksa saldo atau validitas QR.');
+      setPayError(err?.response?.data?.message || 'Transaksi ditolak. Periksa saldo atau validitas token.');
     } finally {
       setIsProcessingPay(false);
     }
@@ -240,49 +245,39 @@ export default function BoothPosPage({ params }: PosPageProps) {
   };
 
   return (
-    <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      {/* Top POS Header */}
-      <div style={{
-        background: '#0f172a',
-        color: '#ffffff',
-        padding: '12px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div className="min-h-[calc(100vh-60px)] flex flex-col bg-background text-text-primary">
+      {/* Top POS Bar */}
+      <div className="bg-card/90 backdrop-blur-md border-b border-border px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/organizer/booths"
-            style={{
-              color: 'rgba(255,255,255,0.7)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
-              fontSize: '0.8rem', fontWeight: 600,
-            }}
+            className="text-text-muted hover:text-text-primary flex items-center gap-1.5 text-xs font-semibold shrink-0 transition-colors"
           >
-            <ArrowLeft size={16} /> Kembali
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Kembali</span>
           </Link>
-          <div style={{ height: 20, width: 1, background: 'rgba(255,255,255,0.15)' }} />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#fff' }}>
+          <div className="h-4 w-px bg-border shrink-0" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-bold text-text-primary truncate">
                 {boothData?.booth?.name ?? 'Terminal POS'}
-              </h2>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#4f46e5', padding: '2px 6px', borderRadius: 4 }}>
+              </h1>
+              <Badge variant="primary" size="sm">
                 {boothData?.booth?.code ?? 'BOOTH'}
-              </span>
+              </Badge>
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-[11px] text-text-muted truncate">
               {boothData?.booth?.event?.title ?? 'Event Festival'}
-            </div>
+            </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Penjualan Hari Ini</div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#10b981' }}>
-              Rp {Number(boothData?.today_revenue ?? 0).toLocaleString('id-ID')}{' '}
-              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>
+        <div className="flex items-center gap-4 shrink-0 text-right">
+          <div>
+            <div className="text-[10px] sm:text-xs text-text-muted uppercase font-semibold">Penjualan Hari Ini</div>
+            <div className="text-sm sm:text-base font-extrabold text-success">
+              {formatRupiah(Number(boothData?.today_revenue ?? 0))}{' '}
+              <span className="text-[11px] text-text-muted font-normal">
                 ({boothData?.today_sales_count ?? 0} tx)
               </span>
             </div>
@@ -290,27 +285,56 @@ export default function BoothPosPage({ params }: PosPageProps) {
         </div>
       </div>
 
-      {/* POS Workspace (Catalog Left / Cart Right) */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 380px', overflow: 'hidden' }}>
+      {/* Mobile Tab Switcher (< 1024px) */}
+      <div className="lg:hidden flex border-b border-border bg-card text-xs font-bold">
+        <button
+          onClick={() => setActiveTabMobile('catalog')}
+          className={`flex-1 py-3 text-center border-b-2 transition-colors ${
+            activeTabMobile === 'catalog'
+              ? 'border-primary text-primary bg-primary/5'
+              : 'border-transparent text-text-muted hover:text-text-primary'
+          }`}
+        >
+          Katalog ({products.length})
+        </button>
+        <button
+          onClick={() => setActiveTabMobile('cart')}
+          className={`flex-1 py-3 text-center border-b-2 transition-colors flex items-center justify-center gap-1.5 ${
+            activeTabMobile === 'cart'
+              ? 'border-primary text-primary bg-primary/5'
+              : 'border-transparent text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <ShoppingCart size={14} />
+          Keranjang ({totalItemCount})
+        </button>
+      </div>
+
+      {/* Main POS Workspace */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_380px] overflow-hidden">
         {/* Left: Product Catalog */}
-        <div style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
-              Pilih Menu / Produk ({products.length})
-            </div>
+        <div
+          className={`overflow-y-auto p-4 sm:p-6 flex flex-col ${
+            activeTabMobile === 'catalog' ? 'flex' : 'hidden lg:flex'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-text-primary">
+              Katalog Produk ({products.length})
+            </h2>
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
-              <RefreshCw className="animate-spin" size={32} style={{ margin: '0 auto 12px', color: '#4f46e5' }} />
-              <div>Memuat katalog produk...</div>
+            <div className="text-center py-16 text-text-muted">
+              <RefreshCw className="animate-spin mx-auto mb-3 text-primary" size={28} />
+              <div className="text-sm">Memuat katalog produk...</div>
             </div>
           ) : products.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
+            <div className="text-center py-16 text-text-muted text-sm">
               Belum ada produk pada katalog booth ini.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 pb-20 lg:pb-4">
               {products.map((p) => {
                 const isOutOfStock = p.stock <= 0;
                 const inCartQty = cart[p.id] || 0;
@@ -318,55 +342,45 @@ export default function BoothPosPage({ params }: PosPageProps) {
                   <div
                     key={p.id}
                     onClick={() => !isOutOfStock && addToCart(p)}
-                    style={{
-                      background: '#ffffff',
-                      borderRadius: 16,
-                      border: `1.5px solid ${inCartQty > 0 ? '#4f46e5' : '#e2e8f0'}`,
-                      padding: '16px',
-                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                      opacity: isOutOfStock ? 0.5 : 1,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.12s',
-                    }}
+                    className={`bg-card rounded-2xl border transition-all p-3.5 sm:p-4 flex flex-col justify-between select-none ${
+                      isOutOfStock
+                        ? 'opacity-50 cursor-not-allowed border-border'
+                        : inCartQty > 0
+                        ? 'border-primary shadow-sm ring-1 ring-primary/40 cursor-pointer'
+                        : 'border-border hover:border-primary/50 cursor-pointer shadow-xs'
+                    }`}
                   >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isOutOfStock ? '#ef4444' : '#16a34a' }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span
+                          className={`text-[11px] font-bold ${
+                            isOutOfStock ? 'text-danger' : 'text-success'
+                          }`}
+                        >
                           {isOutOfStock ? 'HABIS' : `Stok: ${p.stock}`}
                         </span>
                         {inCartQty > 0 && (
-                          <span style={{
-                            background: '#4f46e5', color: '#fff', fontSize: '0.72rem', fontWeight: 800,
-                            width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
+                          <span className="bg-primary text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
                             {inCartQty}
                           </span>
                         )}
                       </div>
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
+                      <h3 className="text-xs sm:text-sm font-bold text-text-primary line-clamp-2 mb-2">
                         {p.name}
-                      </h4>
+                      </h3>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#4f46e5' }}>
-                        Rp {Number(p.price).toLocaleString('id-ID')}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
+                      <div className="text-xs sm:text-sm font-extrabold text-primary">
+                        {formatRupiah(Number(p.price))}
                       </div>
                       <button
                         disabled={isOutOfStock}
-                        style={{
-                          background: inCartQty > 0 ? '#4f46e5' : '#f1f5f9',
-                          color: inCartQty > 0 ? '#fff' : '#0f172a',
-                          border: 'none',
-                          borderRadius: 8,
-                          padding: '6px 10px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
+                        className={`text-xs font-bold rounded-lg px-2.5 py-1 transition-colors ${
+                          inCartQty > 0
+                            ? 'bg-primary text-white'
+                            : 'bg-background-elevated hover:bg-primary hover:text-white text-text-primary'
+                        }`}
                       >
                         + Tambah
                       </button>
@@ -379,31 +393,21 @@ export default function BoothPosPage({ params }: PosPageProps) {
         </div>
 
         {/* Right: Order Cart & Checkout Panel */}
-        <div style={{
-          background: '#ffffff',
-          borderLeft: '1px solid #e2e8f0',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '-4px 0 16px rgba(0,0,0,0.02)',
-        }}>
+        <div
+          className={`bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shadow-sm ${
+            activeTabMobile === 'cart' ? 'flex flex-1' : 'hidden lg:flex'
+          }`}
+        >
           {/* Cart Header */}
-          <div style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #f1f5f9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-              <ShoppingCart size={18} /> Keranjang Kasir ({cartItems.length})
+          <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 text-sm font-bold text-text-primary">
+              <ShoppingCart size={18} className="text-primary" />
+              <span>Keranjang Kasir ({totalItemCount})</span>
             </div>
             {cartItems.length > 0 && (
               <button
                 onClick={clearCart}
-                style={{
-                  background: 'none', border: 'none', color: '#ef4444',
-                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                }}
+                className="text-xs font-semibold text-danger hover:underline flex items-center gap-1"
               >
                 <Trash2 size={13} /> Bersihkan
               </button>
@@ -411,223 +415,201 @@ export default function BoothPosPage({ params }: PosPageProps) {
           </div>
 
           {/* Cart Items List */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {cartItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
-                <ShoppingCart size={36} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-                <div style={{ fontSize: '0.85rem' }}>Keranjang masih kosong.</div>
-                <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: 4 }}>Klik produk di sebelah kiri untuk menambahkan.</div>
+              <div className="text-center py-16 text-text-muted">
+                <ShoppingCart size={36} className="mx-auto mb-2 opacity-30" />
+                <div className="text-sm font-medium">Keranjang masih kosong</div>
+                <div className="text-xs text-text-muted mt-1">
+                  Pilih produk dari katalog untuk memulai pesanan.
+                </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {cartItems.map((item) => (
-                  <div
-                    key={item.product_id}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '10px 12px', borderRadius: 12, background: '#f8fafc', border: '1px solid #f1f5f9',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0, marginRight: 10 }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.name}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        @ Rp {item.price.toLocaleString('id-ID')}
-                      </div>
+              cartItems.map((item) => (
+                <div
+                  key={item.product_id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-background border border-border gap-2"
+                >
+                  <div className="flex-1 min-w-0 mr-2">
+                    <div className="text-xs sm:text-sm font-bold text-text-primary truncate">
+                      {item.name}
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        onClick={() => removeFromCart(item.product_id)}
-                        style={{
-                          width: 26, height: 26, borderRadius: 6, border: '1px solid #cbd5e1',
-                          background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        }}
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, minWidth: 18, textAlign: 'center' }}>
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => addToCart({ id: item.product_id, stock: 9999 })}
-                        style={{
-                          width: 26, height: 26, borderRadius: 6, border: '1px solid #cbd5e1',
-                          background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                        }}
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-
-                    <div style={{ textAlign: 'right', minWidth: 72, marginLeft: 10 }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                        Rp {item.subtotal.toLocaleString('id-ID')}
-                      </div>
+                    <div className="text-[11px] text-text-muted">
+                      @ {formatRupiah(item.price)}
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => removeFromCart(item.product_id)}
+                      className="w-7 h-7 rounded-lg border border-border bg-card hover:bg-background-elevated flex items-center justify-center text-text-primary transition-colors"
+                      aria-label="Kurangi jumlah"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <span className="text-xs sm:text-sm font-bold min-w-5 text-center">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => addToCart({ id: item.product_id, stock: 9999 })}
+                      className="w-7 h-7 rounded-lg border border-border bg-card hover:bg-background-elevated flex items-center justify-center text-text-primary transition-colors"
+                      aria-label="Tambah jumlah"
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </div>
+
+                  <div className="text-right shrink-0 min-w-16 ml-2">
+                    <div className="text-xs sm:text-sm font-extrabold text-text-primary">
+                      {formatRupiah(item.subtotal)}
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
           {/* Cart Footer */}
-          <div style={{ padding: '20px', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
+          <div className="p-4 border-t border-border bg-card shrink-0">
+            <div className="flex justify-between items-end mb-4">
               <div>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Pembayaran</span>
-                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
-                  Rp {cartTotal.toLocaleString('id-ID')}
+                <span className="text-[11px] text-text-muted uppercase font-bold tracking-wider">
+                  Total Pembayaran
+                </span>
+                <div className="text-xl sm:text-2xl font-black text-text-primary">
+                  {formatRupiah(cartTotal)}
                 </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>
-                Harga Server Terverifikasi
-              </div>
+              <Badge variant="success" size="sm">
+                Harga Server
+              </Badge>
             </div>
 
-            <button
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full"
               disabled={cartItems.length === 0}
               onClick={() => {
                 setShowPayModal(true);
                 setCameraActive(true);
               }}
-              style={{
-                width: '100%',
-                padding: '14px',
-                borderRadius: 14,
-                background: cartItems.length === 0 ? '#cbd5e1' : '#4f46e5',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 800,
-                cursor: cartItems.length === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                boxShadow: cartItems.length === 0 ? 'none' : '0 8px 20px -4px rgba(79, 70, 229, 0.4)',
-              }}
             >
-              <QrCode size={18} /> Proses Bayar FestPay
-            </button>
+              <QrCode size={18} className="mr-2" />
+              Proses Bayar FestPay
+            </Button>
           </div>
         </div>
       </div>
 
+      {/* Floating Checkout Bar for Mobile (Catalog View) */}
+      {activeTabMobile === 'catalog' && totalItemCount > 0 && (
+        <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40 bg-card border border-border shadow-xl rounded-2xl p-3.5 flex items-center justify-between">
+          <div>
+            <div className="text-xs text-text-muted">{totalItemCount} item dalam keranjang</div>
+            <div className="text-sm font-black text-text-primary">{formatRupiah(cartTotal)}</div>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => setActiveTabMobile('cart')}
+          >
+            <ShoppingCart size={15} className="mr-1.5" />
+            Buka Keranjang
+          </Button>
+        </div>
+      )}
+
       {/* POS Payment Modal (Scan QR or NFC Tap) */}
       {showPayModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }}>
-          <div style={{
-            background: '#ffffff', borderRadius: 24, width: '100%', maxWidth: 460,
-            overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
-          }}>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div style={{
-              padding: '18px 24px', background: '#0f172a', color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
+            <div className="p-4 bg-background-elevated border-b border-border flex items-center justify-between">
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700, textTransform: 'uppercase' }}>
+                <div className="text-xs text-primary font-bold uppercase tracking-wider">
                   Total Tagihan
                 </div>
-                <div style={{ fontSize: '1.35rem', fontWeight: 900 }}>
-                  Rp {cartTotal.toLocaleString('id-ID')}
+                <div className="text-xl font-black text-text-primary">
+                  {formatRupiah(cartTotal)}
                 </div>
               </div>
               <button
                 onClick={closePayModal}
-                style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer' }}
+                className="w-8 h-8 rounded-full bg-card hover:bg-background border border-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+                aria-label="Tutup modal"
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
             {/* Receipt Success View */}
             {receiptData ? (
-              <div style={{ padding: '28px 24px', textAlign: 'center' }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%', background: '#dcfce7',
-                  color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 16px',
-                }}>
-                  <CheckCircle2 size={36} />
+              <div className="p-6 text-center">
+                <div className="w-14 h-14 rounded-full bg-success/15 text-success flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 size={32} />
                 </div>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
+                <h3 className="text-lg font-extrabold text-text-primary mb-1">
                   Pembayaran Berhasil!
                 </h3>
-                <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 20 }}>
-                  No. Transaksi: <strong>{receiptData.transaction_number}</strong>
-                </div>
+                <p className="text-xs text-text-muted mb-4">
+                  No. Transaksi: <strong className="text-text-primary">{receiptData.transaction_number}</strong>
+                </p>
 
-                <div style={{
-                  background: '#f8fafc', borderRadius: 14, padding: '16px', border: '1px solid #e2e8f0',
-                  textAlign: 'left', fontSize: '0.82rem', marginBottom: 24,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: '#64748b' }}>Metode:</span>
-                    <span style={{ fontWeight: 700 }}>{receiptData.payment_method}</span>
+                <div className="bg-background rounded-xl p-4 border border-border text-left text-xs space-y-2 mb-6">
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Metode:</span>
+                    <span className="font-bold">{receiptData.payment_method}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: '#64748b' }}>Wallet Pembeli:</span>
-                    <span style={{ fontWeight: 700 }}>{receiptData.buyer?.wallet_number}</span>
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Wallet Pembeli:</span>
+                    <span className="font-bold font-mono">{receiptData.buyer?.wallet_number}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: '#64748b' }}>Total Terpotong:</span>
-                    <span style={{ fontWeight: 800, color: '#16a34a' }}>
-                      Rp {Number(receiptData.amount).toLocaleString('id-ID')}
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Total Terpotong:</span>
+                    <span className="font-extrabold text-success">
+                      {formatRupiah(Number(receiptData.amount))}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#64748b' }}>Sisa Saldo Pembeli:</span>
-                    <span style={{ fontWeight: 700 }}>
-                      Rp {Number(receiptData.buyer?.remaining_balance ?? 0).toLocaleString('id-ID')}
+                  <div className="flex justify-between border-t border-border/50 pt-2">
+                    <span className="text-text-muted">Sisa Saldo Pembeli:</span>
+                    <span className="font-bold">
+                      {formatRupiah(Number(receiptData.buyer?.remaining_balance ?? 0))}
                     </span>
                   </div>
                 </div>
 
-                <button
+                <Button
+                  variant="primary"
+                  className="w-full"
                   onClick={closePayModal}
-                  style={{
-                    width: '100%', padding: '12px', borderRadius: 12,
-                    background: '#4f46e5', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer',
-                  }}
                 >
                   Transaksi Baru
-                </button>
+                </Button>
               </div>
             ) : (
               /* Payment Input View (Tabs: QR Scanner or NFC Wristband) */
-              <div style={{ padding: '20px 24px' }}>
+              <div className="p-4 sm:p-6">
                 {/* Method Tabs */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   <button
                     onClick={() => { setPaymentMethod('QR_WALLET'); setCameraActive(true); }}
-                    style={{
-                      padding: '10px', borderRadius: 10,
-                      border: `1.5px solid ${paymentMethod === 'QR_WALLET' ? '#4f46e5' : '#e2e8f0'}`,
-                      background: paymentMethod === 'QR_WALLET' ? '#eef2ff' : '#fff',
-                      color: paymentMethod === 'QR_WALLET' ? '#4f46e5' : '#475569',
-                      fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                      paymentMethod === 'QR_WALLET'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-text-muted hover:text-text-primary'
+                    }`}
                   >
                     <QrCode size={16} /> Scan QR Pembeli
                   </button>
 
                   <button
                     onClick={() => { setPaymentMethod('NFC_WRISTBAND'); setCameraActive(false); }}
-                    style={{
-                      padding: '10px', borderRadius: 10,
-                      border: `1.5px solid ${paymentMethod === 'NFC_WRISTBAND' ? '#4f46e5' : '#e2e8f0'}`,
-                      background: paymentMethod === 'NFC_WRISTBAND' ? '#eef2ff' : '#fff',
-                      color: paymentMethod === 'NFC_WRISTBAND' ? '#4f46e5' : '#475569',
-                      fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                      paymentMethod === 'NFC_WRISTBAND'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-text-muted hover:text-text-primary'
+                    }`}
                   >
                     <Radio size={16} /> Tap Gelang NFC
                   </button>
@@ -636,112 +618,87 @@ export default function BoothPosPage({ params }: PosPageProps) {
                 {paymentMethod === 'QR_WALLET' ? (
                   <div>
                     {/* Camera Scanner Viewport */}
-                    <div style={{
-                      width: '100%', height: 260, background: '#0f172a', borderRadius: 16,
-                      overflow: 'hidden', position: 'relative', marginBottom: 14,
-                    }}>
-                      <div id="pos-camera-viewport" style={{ width: '100%', height: '100%' }} />
-
-                      {/* Aim target frame overlay */}
-                      <div style={{
-                        position: 'absolute', inset: '25px', pointerEvents: 'none',
-                        border: '2px dashed rgba(255,255,255,0.7)', borderRadius: 16,
-                      }} />
+                    <div className="w-full h-56 bg-black rounded-xl overflow-hidden relative mb-3 border border-border">
+                      <div id="pos-camera-viewport" className="w-full h-full" />
+                      <div className="absolute inset-6 pointer-events-none border-2 border-dashed border-white/60 rounded-xl" />
                     </div>
 
-                    <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', marginBottom: 12 }}>
+                    <p className="text-center text-[11px] text-text-muted mb-3">
                       Arahkan kamera ke QR FestPay 60s pada aplikasi HP pembeli.
-                    </div>
+                    </p>
 
                     {/* Manual token input fallback (Barcode gun / copy paste) */}
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Atau masukkan kode / scanner gun..."
+                        placeholder="Atau scan dengan barcode gun..."
                         value={credentialInput}
                         onChange={(e) => setCredentialInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleProcessPayment(credentialInput)}
-                        style={{
-                          flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1',
-                          fontSize: '0.8rem', outline: 'none',
-                        }}
+                        className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-primary"
                       />
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => handleProcessPayment(credentialInput)}
                         disabled={isProcessingPay || !credentialInput.trim()}
-                        style={{
-                          padding: '8px 14px', borderRadius: 8, background: '#4f46e5', color: '#fff',
-                          border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                        }}
+                        loading={isProcessingPay}
                       >
                         Bayar
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{
-                      background: '#f8fafc', borderRadius: 16, padding: '30px 20px',
-                      textAlign: 'center', border: '1.5px dashed #cbd5e1', marginBottom: 16,
-                    }}>
-                      <Radio size={44} style={{ color: '#4f46e5', margin: '0 auto 12px' }} />
-                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>
+                    <div className="bg-background rounded-xl p-6 text-center border border-dashed border-border mb-4">
+                      <Radio size={36} className="text-primary mx-auto mb-2" />
+                      <div className="text-sm font-bold text-text-primary">
                         Tempelkan Gelang NFC ke Belakang HP
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '6px 0 16px' }}>
-                        Pastikan sensor NFC HP kasir aktif. Saldo akan otomatis terpotong secara instan.
+                      <p className="text-xs text-text-muted mt-1 mb-4">
+                        Pastikan sensor NFC HP kasir aktif. Saldo akan otomatis terpotong instan.
                       </p>
 
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         onClick={handleNfcTap}
-                        style={{
-                          background: '#059669', color: '#fff', border: 'none', borderRadius: 10,
-                          padding: '10px 18px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer',
-                        }}
                       >
                         Aktifkan Reader NFC
-                      </button>
+                      </Button>
                     </div>
 
                     {/* Manual UID Fallback */}
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
                       Input UID Gelang Manual / RFID Reader USB:
                     </label>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         placeholder="Contoh: 04:A2:3F:89:C1:6B:80"
                         value={credentialInput}
                         onChange={(e) => setCredentialInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleProcessPayment(credentialInput)}
-                        style={{
-                          flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1',
-                          fontSize: '0.8rem', fontFamily: 'monospace', outline: 'none',
-                        }}
+                        className="flex-1 bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-primary"
                       />
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => handleProcessPayment(credentialInput)}
                         disabled={isProcessingPay || !credentialInput.trim()}
-                        style={{
-                          padding: '8px 14px', borderRadius: 8, background: '#4f46e5', color: '#fff',
-                          border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                        }}
+                        loading={isProcessingPay}
                       >
                         Potong Saldo
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
 
                 {payError && (
-                  <div style={{
-                    marginTop: 14, padding: '10px 12px', borderRadius: 8,
-                    background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c',
-                    fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <AlertCircle size={15} /> {payError}
-                  </div>
+                  <Alert variant="danger" className="mt-3">
+                    {payError}
+                  </Alert>
                 )}
               </div>
             )}

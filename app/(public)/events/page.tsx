@@ -7,26 +7,32 @@ import {
   Search, SlidersHorizontal, X, Ticket, Zap,
   ChevronLeft, ChevronRight, Music2, Mic2, Theater, BookOpen, Trophy, Globe
 } from 'lucide-react';
-import { EventCard } from '../../../components/events/EventCard';
-import { apiService } from '../../../lib/api';
-import type { Event } from '../../../types';
+import { EventCard } from '@/components/events/EventCard';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { apiService } from '@/lib/api';
+import type { Event } from '@/types';
 
 const CATEGORIES = [
-  { value: '', label: 'Semua' },
-  { value: 'concert',    label: 'Concert',      icon: Music2 },
-  { value: 'festival',   label: 'Festival',     icon: Theater },
-  { value: 'fan_meeting',label: 'Fan Meeting',  icon: Mic2 },
-  { value: 'seminar',    label: 'Seminar',      icon: BookOpen },
-  { value: 'sports',     label: 'Sports',       icon: Trophy },
-  { value: 'exhibition', label: 'Exhibition',   icon: Globe },
+  { value: '', label: 'Semua', icon: null },
+  { value: 'concert', label: 'Concert', icon: Music2 },
+  { value: 'festival', label: 'Festival', icon: Theater },
+  { value: 'fan_meeting', label: 'Fan Meeting', icon: Mic2 },
+  { value: 'seminar', label: 'Seminar', icon: BookOpen },
+  { value: 'sports', label: 'Sports', icon: Trophy },
+  { value: 'exhibition', label: 'Exhibition', icon: Globe },
 ];
 
 const SORT_OPTIONS = [
-  { value: '',               label: 'Terpopuler' },
+  { value: '', label: 'Terpopuler' },
   { value: 'event_date_asc', label: 'Paling Dekat' },
-  { value: 'price_asc',      label: 'Harga Terendah' },
-  { value: 'price_desc',     label: 'Harga Tertinggi' },
-  { value: 'newest',         label: 'Terbaru' },
+  { value: 'price_asc', label: 'Harga Terendah' },
+  { value: 'price_desc', label: 'Harga Tertinggi' },
+  { value: 'newest', label: 'Terbaru' },
 ];
 
 interface Meta {
@@ -38,33 +44,40 @@ interface Meta {
 
 function EventsContent() {
   const searchParams = useSearchParams();
-  const router       = useRouter();
+  const router = useRouter();
 
-  const [events,    setEvents]    = useState<Event[]>([]);
-  const [meta,      setMeta]      = useState<Meta>({ current_page: 1, last_page: 1, total: 0, per_page: 12 });
-  const [loading,   setLoading]   = useState(true);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [meta, setMeta] = useState<Meta>({ current_page: 1, last_page: 1, total: 0, per_page: 12 });
+  const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
 
-  const [search,   setSearch]   = useState(searchParams.get('q') ?? '');
+  const [search, setSearch] = useState(searchParams.get('q') ?? '');
   const [category, setCategory] = useState(searchParams.get('category') ?? '');
-  const [warOnly,  setWarOnly]  = useState(searchParams.get('war_ticket') === 'true');
-  const [sort,     setSort]     = useState('');
-  const [page,     setPage]     = useState(Number(searchParams.get('page') ?? 1));
+  const [warOnly, setWarOnly] = useState(searchParams.get('war_ticket') === 'true');
+  const [sort, setSort] = useState('');
+  const [page, setPage] = useState(Number(searchParams.get('page') ?? 1));
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, unknown> = { page, per_page: 12 };
-      if (search)   params.search     = search;
-      if (category) params.category   = category;
-      if (warOnly)  params.war_ticket = true;
-      if (sort)     params.sort       = sort;
+      if (search) params.search = search;
+      if (category) params.category = category;
+      if (warOnly) params.war_ticket = true;
+      if (sort) params.sort = sort;
 
       const res = await apiService.events.getEvents(params);
-      const d   = (res as any)?.data ?? res;
+      const d = (res as any)?.data ?? res;
       setEvents(Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []);
       if (d?.meta) setMeta(d.meta);
-      else if (d?.current_page) setMeta({ current_page: d.current_page, last_page: d.last_page, total: d.total, per_page: d.per_page });
+      else if (d?.current_page) {
+        setMeta({
+          current_page: d.current_page,
+          last_page: d.last_page,
+          total: d.total,
+          per_page: d.per_page
+        });
+      }
     } catch {
       setEvents([]);
     } finally {
@@ -72,293 +85,337 @@ function EventsContent() {
     }
   }, [search, category, warOnly, sort, page]);
 
-  useEffect(() => { loadEvents(); }, [loadEvents]);
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
-  // Sync URL
+  // Sync URL query params
   useEffect(() => {
     const p = new URLSearchParams();
-    if (search)   p.set('q', search);
+    if (search) p.set('q', search);
     if (category) p.set('category', category);
-    if (warOnly)  p.set('war_ticket', 'true');
+    if (warOnly) p.set('war_ticket', 'true');
     if (page > 1) p.set('page', String(page));
     router.replace(`/events${p.size ? `?${p.toString()}` : ''}`, { scroll: false });
   }, [search, category, warOnly, page, router]);
 
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); setPage(1); loadEvents(); };
-  const resetFilters = () => { setSearch(''); setCategory(''); setWarOnly(false); setSort(''); setPage(1); };
-  const hasFilters   = search || category || warOnly || sort;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    loadEvents();
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setCategory('');
+    setWarOnly(false);
+    setSort('');
+    setPage(1);
+  };
+
+  const hasFilters = search || category || warOnly || sort;
 
   return (
-    <div style={{ minHeight: '100vh', paddingTop: 100, paddingBottom: 80 }}>
-      <div className="container">
+    <PageContainer size="lg" className="pt-24 pb-16">
+      {/* ─── PAGE HEADER ─────────────────────────────────── */}
+      <PageHeader
+        title="Jelajahi Event"
+        description={
+          meta.total > 0
+            ? `${meta.total.toLocaleString('id-ID')} event tersedia dan siap dipesan`
+            : 'Temukan konser musik, festival, dan acara favoritmu'
+        }
+      />
 
-        {/* ─── PAGE HEADER ─────────────────────────────────── */}
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', marginBottom: 8, color: 'var(--text-primary)', fontWeight: 800 }}>
-            Jelajahi Event
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            {meta.total > 0 ? `${meta.total.toLocaleString('id-ID')} event ditemukan` : 'Temukan konser & event favoritmu'}
-          </p>
-        </div>
+      {/* ─── SEARCH + CONTROLS ───────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        {/* Search bar */}
+        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search
+              size={18}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                if (!e.target.value) setPage(1);
+              }}
+              placeholder="Cari event, artis, atau venue..."
+              className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-primary transition-colors"
+            />
+          </div>
+          <Button type="submit" variant="primary" size="md">
+            Cari
+          </Button>
+        </form>
 
-        {/* ─── SEARCH + CONTROLS ───────────────────────────── */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-          {/* Search bar */}
-          <form onSubmit={handleSearch} style={{ flex: 1, minWidth: 240, display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                value={search}
-                onChange={e => { setSearch(e.target.value); if (!e.target.value) setPage(1); }}
-                placeholder="Cari event, artis, venue..."
-                className="input"
-                style={{ paddingLeft: 42 }}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary btn-sm">Cari</button>
-          </form>
-
-          {/* Sort */}
+        <div className="flex items-center gap-2.5">
+          {/* Sort dropdown */}
           <select
             value={sort}
-            onChange={e => { setSort(e.target.value); setPage(1); }}
-            className="input"
-            style={{ width: 'auto', minWidth: 160 }}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-text-primary focus:outline-hidden focus:border-primary transition-colors cursor-pointer"
           >
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value} className="bg-card text-text-primary">
+                {o.label}
+              </option>
+            ))}
           </select>
 
-          {/* Filter toggle */}
-          <button
+          {/* Filter toggle button */}
+          <Button
+            type="button"
+            variant={showFilters ? 'primary' : 'outline'}
+            size="md"
             onClick={() => setShowFilters(!showFilters)}
-            className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-            style={{ position: 'relative' }}
+            className="relative"
           >
-            <SlidersHorizontal size={16} />
+            <SlidersHorizontal size={16} className="mr-1.5" />
             Filter
             {hasFilters && (
-              <span style={{
-                position: 'absolute', top: -6, right: -6,
-                width: 16, height: 16, borderRadius: '50%',
-                background: 'var(--color-secondary)', fontSize: '0.65rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700,
-              }}>!</span>
+              <span className="ml-1.5 w-2 h-2 rounded-full bg-accent animate-pulse" />
             )}
-          </button>
+          </Button>
 
           {hasFilters && (
-            <button onClick={resetFilters} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>
-              <X size={14} /> Reset
-            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-danger hover:text-danger hover:bg-danger/10"
+            >
+              <X size={15} className="mr-1" /> Reset
+            </Button>
           )}
         </div>
+      </div>
 
-        {/* ─── FILTER PANEL ────────────────────────────────── */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              padding: 24, borderRadius: 16, marginBottom: 24,
-              background: 'var(--card)', border: '1px solid var(--border)',
-            }}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
-              {/* Category filter */}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <label className="label" style={{ marginBottom: 12 }}>Kategori</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {CATEGORIES.map(c => (
+      {/* ─── FILTER EXPANDABLE PANEL ─────────────────────── */}
+      {showFilters && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-5 rounded-2xl bg-card border border-border mb-6 space-y-4 shadow-sm"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Category filter pills */}
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2.5">
+                Kategori Event
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((c) => {
+                  const Icon = c.icon;
+                  const isActive = category === c.value;
+                  return (
                     <button
                       key={c.value}
-                      onClick={() => { setCategory(c.value); setPage(1); }}
-                      style={{
-                        padding: '6px 14px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 600,
-                        cursor: 'pointer', transition: 'all 0.15s',
-                        border: category === c.value ? '1px solid var(--color-primary)' : '1px solid var(--border)',
-                        background: category === c.value
-                          ? 'var(--color-primary)'
-                          : 'var(--background)',
-                        color: category === c.value ? 'white' : 'var(--text-secondary)',
+                      onClick={() => {
+                        setCategory(c.value);
+                        setPage(1);
                       }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-background hover:bg-background-elevated text-text-secondary border border-border'
+                      }`}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {c.icon && <c.icon size={14} />}
-                        {c.label}
-                      </div>
+                      {Icon && <Icon size={13} />}
+                      <span>{c.label}</span>
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* War ticket toggle */}
-              <div>
-                <label className="label" style={{ marginBottom: 12 }}>Tipe</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                  <div
-                    onClick={() => { setWarOnly(!warOnly); setPage(1); }}
-                    style={{
-                      width: 44, height: 24, borderRadius: 12, position: 'relative', cursor: 'pointer',
-                      background: warOnly
-                        ? 'var(--color-primary)'
-                        : 'rgba(255,255,255,0.1)',
-                      transition: 'background 0.2s',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    <div style={{
-                      position: 'absolute', top: 2, width: 18, height: 18, borderRadius: '50%', background: 'white',
-                      transition: 'left 0.2s', left: warOnly ? 22 : 2,
-                    }} />
-                  </div>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Zap size={14} style={{ color: warOnly ? '#F59E0B' : 'var(--text-muted)' }} />
-                    War Ticket only
-                  </span>
-                </label>
+                  );
+                })}
               </div>
             </div>
-          </motion.div>
-        )}
 
-        {/* ─── ACTIVE FILTER CHIPS ─────────────────────────── */}
-        {hasFilters && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-            {search && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--card)', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                <Search size={20} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8, color: 'var(--text-secondary)' }} /> "{search}"
-                <button onClick={() => { setSearch(''); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', lineHeight: 0, padding: 0 }}><X size={12} /></button>
-              </span>
-            )}
-            {category && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--card)', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                {CATEGORIES.find(c => c.value === category)?.label}
-                <button onClick={() => { setCategory(''); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', lineHeight: 0, padding: 0 }}><X size={12} /></button>
-              </span>
-            )}
-            {warOnly && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--card)', border: '1px solid var(--border)', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
-                <Zap size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} /> War Ticket
-                <button onClick={() => { setWarOnly(false); setPage(1); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', lineHeight: 0, padding: 0 }}><X size={12} /></button>
-              </span>
-            )}
+            {/* War ticket switch */}
+            <div className="shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-6">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2.5">
+                Mode Tiket
+              </label>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={warOnly}
+                  onChange={(e) => {
+                    setWarOnly(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="w-4 h-4 rounded-sm border-border text-primary focus:ring-primary accent-primary cursor-pointer"
+                />
+                <span className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
+                  <Zap size={14} className="text-warning fill-warning" />
+                  War Ticket Only
+                </span>
+              </label>
+            </div>
           </div>
-        )}
+        </motion.div>
+      )}
 
-        {/* ─── EVENTS GRID ─────────────────────────────────── */}
-        {loading ? (
-          <div className="grid-events">
-            {[...Array(12)].map((_, i) => (
-              <div key={i} style={{ borderRadius: 20, overflow: 'hidden' }}>
-                <div className="skeleton" style={{ aspectRatio: '16/9', marginBottom: 12 }} />
-                <div className="skeleton" style={{ height: 18, width: '85%', marginBottom: 8 }} />
-                <div className="skeleton" style={{ height: 14, width: '60%', marginBottom: 8 }} />
-                <div className="skeleton" style={{ height: 6, marginBottom: 8 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div className="skeleton" style={{ height: 20, width: '35%' }} />
-                  <div className="skeleton" style={{ height: 32, width: '28%', borderRadius: 8 }} />
-                </div>
+      {/* ─── ACTIVE FILTER CHIPS ─────────────────────────── */}
+      {hasFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-xs text-text-muted font-medium mr-1">Filter Aktif:</span>
+          {search && (
+            <Badge variant="outline" className="flex items-center gap-1.5 py-1 px-2.5">
+              <span>"{search}"</span>
+              <button
+                onClick={() => { setSearch(''); setPage(1); }}
+                className="hover:text-danger cursor-pointer ml-1"
+                aria-label="Hapus filter pencarian"
+              >
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+          {category && (
+            <Badge variant="primary" className="flex items-center gap-1.5 py-1 px-2.5">
+              <span>{CATEGORIES.find((c) => c.value === category)?.label}</span>
+              <button
+                onClick={() => { setCategory(''); setPage(1); }}
+                className="hover:text-danger cursor-pointer ml-1"
+                aria-label="Hapus filter kategori"
+              >
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+          {warOnly && (
+            <Badge variant="warning" className="flex items-center gap-1.5 py-1 px-2.5">
+              <Zap size={12} className="fill-warning" />
+              <span>War Ticket</span>
+              <button
+                onClick={() => { setWarOnly(false); setPage(1); }}
+                className="hover:text-danger cursor-pointer ml-1"
+                aria-label="Hapus filter war ticket"
+              >
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {/* ─── EVENTS GRID ─────────────────────────────────── */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-card border border-border rounded-2xl p-4 space-y-3">
+              <Skeleton className="w-full aspect-video rounded-xl" />
+              <Skeleton className="h-5 w-3/4 rounded-md" />
+              <Skeleton className="h-4 w-1/2 rounded-md" />
+              <div className="flex justify-between items-center pt-2">
+                <Skeleton className="h-6 w-1/3 rounded-md" />
+                <Skeleton className="h-8 w-1/4 rounded-lg" />
               </div>
+            </div>
+          ))}
+        </div>
+      ) : events.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {events.map((event, i) => (
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                className="h-full"
+              >
+                <EventCard event={event} index={i} />
+              </motion.div>
             ))}
           </div>
-        ) : events.length > 0 ? (
-          <>
-            <div className="grid-events">
-              {events.map((event, i) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  style={{ height: '100%' }}
-                >
-                  <EventCard event={event} index={i} />
-                </motion.div>
-              ))}
-            </div>
 
-            {/* ─── PAGINATION ──────────────────────────────── */}
-            {meta.last_page > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 48 }}>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+          {/* ─── PAGINATION ──────────────────────────────── */}
+          {meta.last_page > 1 && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-12 pt-6 border-t border-border">
+              <p className="text-xs text-text-muted">
+                Menampilkan {((meta.current_page - 1) * meta.per_page) + 1}–
+                {Math.min(meta.current_page * meta.per_page, meta.total)} dari {meta.total.toLocaleString('id-ID')} event
+              </p>
+
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={meta.current_page === 1}
-                  className="btn btn-secondary btn-sm"
+                  aria-label="Halaman sebelumnya"
                 >
                   <ChevronLeft size={16} />
-                </button>
+                </Button>
 
                 {[...Array(meta.last_page)].map((_, i) => {
                   const p = i + 1;
                   const isActive = p === meta.current_page;
                   if (Math.abs(p - meta.current_page) > 2 && p !== 1 && p !== meta.last_page) {
                     if (p === meta.current_page - 3 || p === meta.current_page + 3) {
-                      return <span key={p} style={{ color: 'var(--text-muted)' }}>…</span>;
+                      return <span key={p} className="px-2 text-text-muted text-xs">…</span>;
                     }
                     return null;
                   }
                   return (
-                    <button
+                    <Button
                       key={p}
+                      variant={isActive ? 'primary' : 'ghost'}
+                      size="sm"
                       onClick={() => setPage(p)}
-                      style={{
-                        width: 36, height: 36, borderRadius: 8, border: 'none', cursor: 'pointer',
-                        fontWeight: isActive ? 700 : 400,
-                        background: isActive
-                          ? 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))'
-                          : 'rgba(255,255,255,0.05)',
-                        color: isActive ? 'white' : 'var(--text-secondary)',
-                        transition: 'all 0.15s',
-                      }}
+                      className="min-w-9"
                     >
                       {p}
-                    </button>
+                    </Button>
                   );
                 })}
 
-                <button
-                  onClick={() => setPage(p => Math.min(meta.last_page, p + 1))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
                   disabled={meta.current_page === meta.last_page}
-                  className="btn btn-secondary btn-sm"
+                  aria-label="Halaman berikutnya"
                 >
                   <ChevronRight size={16} />
-                </button>
+                </Button>
               </div>
-            )}
-
-            <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 16 }}>
-              Menampilkan {((meta.current_page - 1) * meta.per_page) + 1}–{Math.min(meta.current_page * meta.per_page, meta.total)} dari {meta.total.toLocaleString('id-ID')} event
-            </p>
-          </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            style={{ textAlign: 'center', padding: '80px 0' }}
-          >
-            <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}><Ticket size={64} style={{ color: 'var(--text-muted)' }} /></div>
-            <h2 style={{ marginBottom: 12, color: 'var(--text-primary)' }}>Tidak ada event ditemukan</h2>
-            <p style={{ color: 'var(--text-muted)', marginBottom: 32 }}>
-              Coba ubah filter atau kata kunci pencarianmu
-            </p>
-            <button onClick={resetFilters} className="btn btn-primary">
-              <X size={16} /> Reset Filter
-            </button>
-          </motion.div>
-        )}
-      </div>
-    </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <EmptyState
+          icon={<Ticket className="w-6 h-6 text-text-muted" />}
+          title="Tidak Ada Event Ditemukan"
+          description="Coba gunakan kata kunci pencarian yang lain atau reset filter yang sedang aktif."
+          action={
+            <Button variant="primary" size="sm" onClick={resetFilters}>
+              Reset Filter
+            </Button>
+          }
+          className="py-16 bg-card border border-border rounded-3xl"
+        />
+      )}
+    </PageContainer>
   );
 }
 
 export default function EventsPage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--color-primary)', borderRadius: '50%' }} className="animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+        </div>
+      }
+    >
       <EventsContent />
     </Suspense>
   );

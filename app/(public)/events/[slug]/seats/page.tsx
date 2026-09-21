@@ -3,20 +3,22 @@
 import React, { use, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import {
-  ArrowLeft, AlertTriangle, ShieldCheck,
-  Calendar, MapPin, Ticket, Loader2
+  ArrowLeft, ShieldCheck,
+  Calendar, MapPin, Ticket
 } from 'lucide-react';
 import { InteractiveSeatMap } from '@/components/seatmap/InteractiveSeatMap';
 import { apiService } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import type { Event, SeatMapData, SeatNode } from '@/types';
+import { Button, Badge, Card, Alert, LoadingState, ErrorState, EmptyState } from '@/components/ui';
+import { PageContainer } from '@/components/layout';
+import { formatDate } from '@/lib/utils';
 
 export default function EventSeatsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const router   = useRouter();
-  const { user, token } = useAuthStore();
+  const router = useRouter();
+  const { token } = useAuthStore();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [seatMap, setSeatMap] = useState<SeatMapData | null>(null);
@@ -97,7 +99,6 @@ export default function EventSeatsPage({ params }: { params: Promise<{ slug: str
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(countdownIntervalRef.current!);
-            // Refresh map after lock expiry
             fetchData();
             return 0;
           }
@@ -152,7 +153,6 @@ export default function EventSeatsPage({ params }: { params: Promise<{ slug: str
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Gagal mengunci kursi yang dipilih.';
       setError(msg);
-      // Refresh seat map to get updated availability
       fetchData();
     } finally {
       setIsLocking(false);
@@ -161,93 +161,83 @@ export default function EventSeatsPage({ params }: { params: Promise<{ slug: str
 
   if (loading) {
     return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <Loader2 size={36} className="animate-spin" style={{ color: '#6366F1' }} />
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Memuat peta tempat duduk...</p>
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <LoadingState message="Memuat peta tempat duduk..." />
       </div>
     );
   }
 
   if (error && !seatMap) {
     return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <AlertTriangle size={48} style={{ color: '#EF4444' }} />
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Peta Kursi Tidak Tersedia</h2>
-        <p style={{ color: 'rgba(255,255,255,0.6)', maxWidth: 460, textAlign: 'center' }}>{error}</p>
-        <Link href={`/events/${slug}`} className="btn btn-primary">
-          Kembali ke Detail Event
-        </Link>
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <ErrorState
+          title="Peta Kursi Tidak Tersedia"
+          description={error}
+          retryText="Kembali ke Detail Event"
+          onRetry={() => router.push(`/events/${slug}`)}
+        />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: '30px 20px 120px 20px', maxWidth: 1300, margin: '0 auto' }}>
-      {/* ─── Breadcrumb & Navigation ─── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <Link
-          href={`/events/${slug}`}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '0.85rem' }}
-        >
-          <ArrowLeft size={16} />
-          <span>Kembali ke Detail Event</span>
+    <PageContainer size="lg" className="py-6 sm:py-8 pb-32">
+      {/* ─── Breadcrumb & Header Bar ─── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <Link href={`/events/${slug}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<ArrowLeft className="w-4 h-4" />}
+            className="text-text-secondary hover:text-text-primary px-0"
+          >
+            Kembali ke Detail Event
+          </Button>
         </Link>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '6px 12px', borderRadius: 20 }}>
-          <ShieldCheck size={14} />
+        <div className="flex items-center gap-1.5 text-xs text-success bg-success/10 border border-success/20 px-3 py-1 rounded-full font-medium w-fit">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
           <span>Sistem Proteksi Kursi Real-Time TIXORA</span>
         </div>
       </div>
 
-      {/* ─── Event Header Banner ─── */}
+      {/* ─── Event Header Card ─── */}
       {event && (
-        <div style={{
-          padding: '20px 24px', borderRadius: 16,
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
-          display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
-          gap: 16, marginBottom: 24,
-        }}>
-          <div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: '#6366F1', color: 'white' }}>
-                PILIH KURSI
-              </span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)' }}>
-                {event.category?.toUpperCase()}
-              </span>
+        <Card variant="default" className="p-4 sm:p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <Badge variant="primary" size="sm">
+                  PILIH KURSI
+                </Badge>
+                <Badge variant="secondary" size="sm">
+                  {event.category?.toUpperCase()}
+                </Badge>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-text-primary">
+                {event.title}
+              </h1>
             </div>
-            <h1 style={{ fontSize: 'clamp(1.2rem, 3vw, 1.8rem)', fontWeight: 900, margin: 0, color: 'white' }}>
-              {event.title}
-            </h1>
-          </div>
 
-          <div style={{ display: 'flex', gap: 20, fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Calendar size={15} style={{ color: '#6366F1' }} />
-              <span>{new Date(event.event_date).toLocaleDateString('id-ID', { dateStyle: 'medium' })}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <MapPin size={15} style={{ color: '#EC4899' }} />
-              <span>{seatMap?.venue?.name ?? event.venue_name ?? 'Gelora Bung Karno'}</span>
+            <div className="flex items-center gap-4 text-xs sm:text-sm text-text-secondary flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span>{formatDate(event.event_date)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-accent" />
+                <span>{seatMap?.venue?.name ?? event.venue_name ?? 'Gelora Bung Karno'}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ─── Error Notification ─── */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            padding: '12px 18px', borderRadius: 12, marginBottom: 20,
-            background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#EF4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 10,
-          }}
-        >
-          <AlertTriangle size={16} />
-          <span>{error}</span>
-        </motion.div>
+        <Alert variant="danger" title="Perhatian" className="mb-6">
+          {error}
+        </Alert>
       )}
 
       {/* ─── Interactive Seat Map Engine ─── */}
@@ -262,20 +252,21 @@ export default function EventSeatsPage({ params }: { params: Promise<{ slug: str
           isLocking={isLocking}
         />
       ) : (
-        <div style={{
-          textAlign: 'center', padding: '60px 20px', borderRadius: 20,
-          background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)'
-        }}>
-          <Ticket size={48} style={{ opacity: 0.3, margin: '0 auto 16px auto' }} />
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Event Menggunakan Tiket Festival / Standing</h3>
-          <p style={{ color: 'rgba(255,255,255,0.5)', maxWidth: 440, margin: '8px auto 24px auto', fontSize: '0.88rem' }}>
-            Event ini tidak memerlukan pemilihan nomor kursi tempat duduk. Anda dapat langsung memilih kategori tiket.
-          </p>
-          <Link href={`/events/${slug}`} className="btn btn-primary">
-            Pilih Kategori Tiket
-          </Link>
-        </div>
+        <Card variant="default" className="py-16">
+          <EmptyState
+            icon={<Ticket className="w-8 h-8 text-text-muted" />}
+            title="Event Menggunakan Tiket Festival / Standing"
+            description="Event ini tidak memerlukan pemilihan nomor kursi tempat duduk. Anda dapat langsung memilih kategori tiket festival."
+            action={
+              <Link href={`/events/${slug}`}>
+                <Button variant="primary" size="md">
+                  Pilih Kategori Tiket
+                </Button>
+              </Link>
+            }
+          />
+        </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

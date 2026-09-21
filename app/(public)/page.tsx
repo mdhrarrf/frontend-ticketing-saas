@@ -2,66 +2,66 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Search, Zap, Shield, Ticket, Users, Star, ArrowRight,
-  Music2, Mic2, Theater, BookOpen, Trophy, Heart, ChevronRight,
-  Play, TrendingUp, Globe, Clock, Flame, Tag, MapPin,
-  LayoutDashboard, ShieldCheck, BarChart3,
+  Music2, Mic2, Theater, BookOpen, Trophy, Globe, Clock,
+  Flame, Tag, MapPin, ChevronRight, Play, CheckCircle2
 } from 'lucide-react';
-import { EventCard } from '../../components/events/EventCard';
-import { CountdownTimer } from '../../components/events/CountdownTimer';
-import { apiService } from '../../lib/api';
-import type { Event } from '../../types';
+import { EventCard } from '@/components/events/EventCard';
+import { CountdownTimer } from '@/components/events/CountdownTimer';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { apiService } from '@/lib/api';
+import { formatDate } from '@/lib/utils';
+import type { Event } from '@/types';
 
-// ─── Stat Counter ────────────────────────────────────────────
-function StatCounter({ end, suffix, label }: { end: number; suffix: string; label: string }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const duration = 2000;
-    const increment = end / (duration / 16);
-    const id = setInterval(() => {
-      start += increment;
-      if (start >= end) { setCount(end); clearInterval(id); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(id);
-  }, [end]);
-  return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: 'var(--color-primary)' }}>
-        {count.toLocaleString()}{suffix}
-      </div>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>{label}</div>
-    </div>
-  );
-}
-
-// ─── Category Card ────────────────────────────────────────────
+// Categories Definition
 const CATEGORIES = [
-  { icon: Music2,   label: 'Concert',      color: '#6366F1', filter: 'concert' },
+  { icon: Music2,   label: 'Concert',      color: '#8B5CF6', filter: 'concert' },
   { icon: Mic2,     label: 'Fan Meeting',  color: '#EC4899', filter: 'fan_meeting' },
   { icon: Theater,  label: 'Festival',     color: '#F59E0B', filter: 'festival' },
   { icon: BookOpen, label: 'Seminar',      color: '#10B981', filter: 'seminar' },
   { icon: Trophy,   label: 'Sports',       color: '#3B82F6', filter: 'sports' },
-  { icon: Globe,    label: 'Exhibition',   color: '#8B5CF6', filter: 'exhibition' },
+  { icon: Globe,    label: 'Exhibition',   color: '#06B6D4', filter: 'exhibition' },
 ];
 
-// ─── Steps ────────────────────────────────────────────────────
+// Steps Definition
 const STEPS = [
-  { num: '01', icon: Search, title: 'Temukan Event', desc: 'Cari konser & event favorit kamu dari ribuan pilihan event terbaik.' },
-  { num: '02', icon: Users,  title: 'Antri Virtual', desc: 'Masuk waiting room kami yang fair & transparan. Sistem war ticket anti-bot.' },
-  { num: '03', icon: Shield, title: 'Bayar Aman',    desc: 'Pembayaran terenkripsi via QRIS, VA, e-wallet. Multi-gateway payment.' },
-  { num: '04', icon: Ticket, title: 'Nikmati!',      desc: 'Tiket digital dengan QR code unik dikirim langsung ke email & akun kamu.' },
+  {
+    num: '01',
+    icon: Search,
+    title: 'Temukan Event',
+    desc: 'Cari konser & event favorit kamu dari ribuan pilihan event terverifikasi.'
+  },
+  {
+    num: '02',
+    icon: Users,
+    title: 'Antri Virtual',
+    desc: 'Masuk waiting room fair & transparan berteknologi antrian anti-bot.'
+  },
+  {
+    num: '03',
+    icon: Shield,
+    title: 'Bayar Aman',
+    desc: 'Pembayaran instan terenkripsi via QRIS, Virtual Account, & E-Wallet.'
+  },
+  {
+    num: '04',
+    icon: Ticket,
+    title: 'Nikmati Konser!',
+    desc: 'Tiket digital QR dinamis aman siap pakai di gate venue konser.'
+  },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────
 export default function HomePage() {
-  const [events, setEvents]         = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [warTickets, setWarTickets] = useState<Event[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState('');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -79,487 +79,396 @@ export default function HomePage() {
     load();
   }, []);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (search.trim()) {
+      window.location.assign(`/events?q=${encodeURIComponent(search.trim())}`);
+    }
+  };
+
   return (
-    <main style={{ background: 'var(--background)' }}>
-
+    <main className="min-h-screen bg-background text-text-primary overflow-x-hidden">
       {/* ═══════════════════════════════════════════════════════
-          HERO
+          1. HERO SECTION
       ═══════════════════════════════════════════════════════ */}
-      <section
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-          paddingTop: 80,
-        }}
-        className="gradient-hero"
-      >
+      <section className="relative min-h-[90vh] flex items-center justify-center pt-24 pb-16 overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
 
-
-        <div className="container" style={{ position: 'relative', zIndex: 1 }}>
+        <PageContainer size="lg" className="relative z-10 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-            style={{ textAlign: 'center', maxWidth: 800, margin: '0 auto', paddingTop: 40 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="max-w-3xl mx-auto"
           >
-            <h1 style={{ marginBottom: 20, fontSize: 'clamp(2.5rem, 7vw, 5rem)', fontWeight: 900, lineHeight: 1.1, color: 'var(--text-primary)' }}>
-              Platform{' '}
-              <span style={{ color: 'var(--color-primary)' }}>Tiket Konser</span>{' '}
-              Terbaik
+            {/* Tagline Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-bold uppercase tracking-wider mb-6">
+              <Zap size={14} className="fill-primary" />
+              Platform War Tiket Konser #1 Indonesia
+            </div>
+
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] mb-6 text-text-primary">
+              Platform <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">Tiket Konser</span> Terbaik
             </h1>
 
-            <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: 40, maxWidth: 600, margin: '0 auto 40px' }}>
-              Beli tiket konser, festival & fan meeting impianmu. Sistem antrian yang fair, aman, dan anti-bot.
+            <p className="text-base sm:text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+              Beli tiket konser, festival musik, dan fan meeting impianmu. Sistem antrian virtual yang fair, aman, dan berkapasitas tinggi.
             </p>
 
             {/* Search Bar */}
-            <motion.div
+            <motion.form
+              onSubmit={handleSearch}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              style={{
-                display: 'flex',
-                gap: 12,
-                maxWidth: 560,
-                margin: '0 auto 48px',
-                background: 'var(--card)',
-                border: '1px solid var(--border-bright)',
-                borderRadius: 16,
-                padding: 8,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-              }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center gap-2 max-w-xl mx-auto p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30 mb-8"
             >
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16 }}>
-                <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <div className="flex-1 flex items-center gap-3 pl-3">
+                <Search size={18} className="text-text-muted shrink-0" />
                 <input
+                  type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && window.location.assign(`/events?q=${search}`)}
                   placeholder="Cari konser, artis, atau venue..."
-                  style={{
-                    background: 'transparent', border: 'none', outline: 'none',
-                    color: 'var(--text-primary)', fontSize: '0.95rem', width: '100%',
-                  }}
+                  className="w-full bg-transparent border-none outline-hidden text-sm text-text-primary placeholder:text-text-muted font-medium"
                 />
               </div>
-              <Link href={`/events${search ? `?q=${search}` : ''}`} className="btn btn-primary btn-sm" style={{ borderRadius: 10, padding: '10px 20px' }}>
+              <Button type="submit" variant="primary" size="md" className="rounded-xl px-5">
                 Cari
-              </Link>
-            </motion.div>
+              </Button>
+            </motion.form>
           </motion.div>
-        </div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, y: [0, 8, 0] }}
-          transition={{ delay: 1.5, repeat: Infinity, duration: 2 }}
-          style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-        >
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Scroll</div>
-          <div style={{ width: 1, height: 40, background: 'linear-gradient(to bottom, var(--text-muted), transparent)' }} />
-        </motion.div>
+        </PageContainer>
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          WAR TICKET SECTION
+          2. WAR TICKET SECTION
       ═══════════════════════════════════════════════════════ */}
       {warTickets.length > 0 && (
-        <section className="section" style={{ position: 'relative', overflow: 'hidden' }}>
-          {/* Background - Removed gradient tint for a cleaner look */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'transparent',
-            borderTop: '1px solid var(--border)',
-            borderBottom: '1px solid var(--border)',
-          }} />
-
-          <div className="container" style={{ position: 'relative' }}>
+        <section className="py-16 border-y border-border/70 bg-card/30">
+          <PageContainer size="lg">
             {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{
-                  width: 48, height: 48, borderRadius: 12,
-                  background: 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(99,102,241,0.25)',
-                }}>
-                  <Zap size={22} color="white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary shadow-xs">
+                  <Zap size={22} className="fill-primary" />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)', fontWeight: 800 }}>War Ticket</h2>
-                    <span className="badge" style={{ background: 'var(--danger)', color: 'white', fontSize: '0.7rem', padding: '2px 8px', borderRadius: 20 }}>LIVE</span>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary">
+                      War Ticket
+                    </h2>
+                    <Badge variant="danger" size="sm" className="animate-pulse">
+                      LIVE
+                    </Badge>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Event dengan sistem antrian virtual</p>
+                  <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                    Event dengan sistem antrian virtual & kuota real-time
+                  </p>
                 </div>
               </div>
-              <Link href="/events?war_ticket=true" className="btn btn-secondary btn-sm" style={{ fontWeight: 600 }}>
-                Lihat Semua <ArrowRight size={14} />
+
+              <Link href="/events?war_ticket=true">
+                <Button variant="outline" size="sm">
+                  Lihat Semua <ArrowRight size={14} className="ml-1.5" />
+                </Button>
               </Link>
-            </motion.div>
+            </div>
 
             {/* War Ticket Cards */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="space-y-3 sm:space-y-4">
               {warTickets.map((event, i) => (
                 <motion.div
                   key={event.id}
-                  initial={{ opacity: 0, x: -24 }}
-                  whileInView={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
+                  transition={{ delay: i * 0.08 }}
                 >
-                  <Link href={`/events/${event.slug}`}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 24,
-                      padding: '24px',
-                      background: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderLeft: '4px solid var(--color-primary)',
-                      borderRadius: 16,
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    }}
-                    onMouseEnter={e => { 
-                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; 
-                      (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(99,102,241,0.1)'; 
-                      (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-primary)'; 
-                    }}
-                    onMouseLeave={e => { 
-                      (e.currentTarget as HTMLElement).style.transform = 'none'; 
-                      (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 24px rgba(0,0,0,0.04)'; 
-                      (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; 
-                    }}
+                  <Link href={`/events/${event.slug}`} className="block group">
+                    <Card
+                      variant="interactive"
+                      className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-l-4 border-l-primary group-hover:border-primary/80 transition-all"
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: '1.25rem', marginBottom: 8, color: 'var(--text-primary)' }}>{event.title}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                          <MapPin size={14} style={{display:'inline'}}/> {event.venue_name} · <Clock size={14} style={{display:'inline'}}/> {new Date(event.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-xl font-bold text-text-primary group-hover:text-primary transition-colors truncate mb-1">
+                          {event.title}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-text-muted">
+                          <span className="flex items-center gap-1.5">
+                            <MapPin size={13} /> {event.venue_name ?? 'Venue Segera Diumumkan'}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={13} /> {event.event_date ? formatDate(event.event_date) : '-'}
+                          </span>
                         </div>
                       </div>
+
                       {event.war_ticket_open_at && new Date(event.war_ticket_open_at) > new Date() && (
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            Dibuka dalam
+                        <div className="text-left sm:text-right shrink-0">
+                          <div className="text-[10px] uppercase font-bold text-text-muted tracking-wider mb-1">
+                            Dibuka Dalam
                           </div>
                           <CountdownTimer targetDate={event.war_ticket_open_at} size="sm" />
                         </div>
                       )}
-                      <div style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}>
-                        <ChevronRight size={18} style={{ color: 'var(--text-secondary)' }} />
+
+                      <div className="hidden sm:flex w-9 h-9 rounded-xl bg-surface border border-border items-center justify-center text-text-muted group-hover:text-text-primary group-hover:bg-primary/20 transition-all shrink-0">
+                        <ChevronRight size={18} />
                       </div>
-                    </div>
+                    </Card>
                   </Link>
                 </motion.div>
               ))}
             </div>
-          </div>
+          </PageContainer>
         </section>
       )}
 
       {/* ═══════════════════════════════════════════════════════
-          FEATURED EVENTS
+          3. FEATURED EVENTS (EVENT TERPOPULER)
       ═══════════════════════════════════════════════════════ */}
-      <section className="section">
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}
-          >
+      <section className="py-16">
+        <PageContainer size="lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h2 style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}><Flame className="text-orange-500" /> Event Terpopuler</h2>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>Event yang paling ditunggu-tunggu</p>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary flex items-center gap-2">
+                <Flame className="text-orange-500 fill-orange-500" size={24} />
+                Event Terpopuler
+              </h2>
+              <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                Konser dan festival yang paling banyak dinantikan
+              </p>
             </div>
-            <Link href="/events" className="btn btn-secondary btn-sm">
-              Lihat Semua Event <ArrowRight size={14} />
+            <Link href="/events">
+              <Button variant="outline" size="sm">
+                Lihat Semua Event <ArrowRight size={14} className="ml-1.5" />
+              </Button>
             </Link>
-          </motion.div>
+          </div>
 
           {loading ? (
-            <div className="grid-events">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} style={{ borderRadius: 16, overflow: 'hidden' }}>
-                  <div className="skeleton" style={{ height: 200, marginBottom: 12 }} />
-                  <div className="skeleton" style={{ height: 20, width: '80%', marginBottom: 8 }} />
-                  <div className="skeleton" style={{ height: 16, width: '60%' }} />
+                <div key={i} className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                  <Skeleton className="w-full aspect-video rounded-xl" />
+                  <Skeleton className="h-5 w-3/4 rounded-md" />
+                  <Skeleton className="h-4 w-1/2 rounded-md" />
                 </div>
               ))}
             </div>
           ) : events.length > 0 ? (
-            <div className="grid-events">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map((event, i) => (
                 <motion.div
                   key={event.id}
-                  initial={{ opacity: 0, y: 32 }}
+                  initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  style={{ height: '100%' }}
+                  transition={{ delay: i * 0.06 }}
+                  className="h-full"
                 >
-                  <EventCard event={event} />
+                  <EventCard event={event} index={i} />
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
-              <Ticket size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
-              <p>Belum ada event tersedia. Pantau terus!</p>
+            <div className="text-center py-16 bg-card border border-border rounded-2xl">
+              <Ticket size={48} className="mx-auto mb-3 text-text-muted opacity-30" />
+              <p className="text-sm text-text-muted">Belum ada event tersedia saat ini.</p>
             </div>
           )}
-        </div>
+        </PageContainer>
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          CATEGORIES
+          4. CATEGORIES
       ═══════════════════════════════════════════════════════ */}
-      <section className="section" style={{ paddingTop: 0 }}>
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{ marginBottom: 32 }}
-          >
-            <h2 style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}><Tag className="text-indigo-400" /> Kategori Event</h2>
-            <p style={{ color: 'var(--text-muted)' }}>Temukan event sesuai minatmu</p>
-          </motion.div>
+      <section className="py-12 border-t border-border/70 bg-card/20">
+        <PageContainer size="lg">
+          <div className="mb-6">
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary flex items-center gap-2">
+              <Tag size={20} className="text-primary" />
+              Kategori Event
+            </h2>
+            <p className="text-xs text-text-muted mt-0.5">Temukan event sesuai preferensi dan minatmu</p>
+          </div>
 
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {CATEGORIES.map(({ icon: Icon, label, color, filter }, i) => (
-              <motion.div
-                key={filter}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-              >
-                <Link href={`/events?category=${filter}`}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '12px 20px', borderRadius: 50,
-                    background: `${color}14`,
-                    border: `1px solid ${color}30`,
-                    cursor: 'pointer', transition: 'all 0.2s',
-                    fontWeight: 600, fontSize: '0.9rem',
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `${color}25`; (e.currentTarget as HTMLElement).style.borderColor = `${color}60`; (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = `${color}14`; (e.currentTarget as HTMLElement).style.borderColor = `${color}30`; (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
-                  >
-                    <Icon size={16} style={{ color }} />
-                    <span style={{ color }}>{label}</span>
-                  </div>
-                </Link>
-              </motion.div>
+          <div className="flex flex-wrap gap-2.5">
+            {CATEGORIES.map(({ icon: Icon, label, filter }) => (
+              <Link key={filter} href={`/events?category=${filter}`}>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-primary/10 text-text-secondary hover:text-primary transition-all text-xs font-semibold cursor-pointer shadow-2xs">
+                  <Icon size={14} />
+                  <span>{label}</span>
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
+        </PageContainer>
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          HOW IT WORKS
+          5. HOW IT WORKS
       ═══════════════════════════════════════════════════════ */}
-      <section className="section" style={{
-        background: 'linear-gradient(135deg, rgba(99,102,241,0.04) 0%, rgba(236,72,153,0.03) 100%)',
-        borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-      }}>
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{ textAlign: 'center', marginBottom: 64 }}
-          >
-            <h2 style={{ marginBottom: 12 }}>Cara Kerja TIXORA</h2>
-            <p style={{ color: 'var(--text-muted)', maxWidth: 480, margin: '0 auto' }}>
-              4 langkah mudah untuk mendapatkan tiket event impianmu
+      <section className="py-20 border-t border-border bg-card/40">
+        <PageContainer size="lg">
+          <div className="text-center max-w-xl mx-auto mb-14">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-text-primary mb-2">
+              Cara Kerja TIXORA
+            </h2>
+            <p className="text-xs sm:text-sm text-text-muted">
+              4 langkah mudah untuk mendapatkan tiket event konser impianmu
             </p>
-          </motion.div>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {STEPS.map(({ num, icon: Icon, title, desc }, i) => (
               <motion.div
                 key={num}
-                initial={{ opacity: 0, y: 32 }}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.12 }}
-                style={{
-                  padding: 28, borderRadius: 20,
-                  background: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  position: 'relative', overflow: 'hidden',
-                }}
+                transition={{ delay: i * 0.1 }}
               >
-                {/* Step number BG */}
-                <div style={{
-                  position: 'absolute', top: -20, right: -10,
-                  fontSize: '6rem', fontWeight: 900, opacity: 0.04,
-                  color: 'white', lineHeight: 1, userSelect: 'none',
-                }}>
-                  {num}
-                </div>
-                {/* Icon */}
-                <div style={{
-                  width: 52, height: 52, borderRadius: 14, marginBottom: 20,
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1px solid rgba(99,102,241,0.2)',
-                }}>
-                  <Icon size={24} style={{ color: 'var(--color-primary)' }} />
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 8 }}>
-                  STEP {num}
-                </div>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: 10 }}>{title}</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>{desc}</p>
+                <Card className="p-6 h-full flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 transition-colors">
+                  <div className="absolute top-2 right-4 text-5xl font-black text-white/5 select-none pointer-events-none">
+                    {num}
+                  </div>
+
+                  <div>
+                    <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary mb-4">
+                      <Icon size={22} />
+                    </div>
+                    <div className="text-[10px] font-black text-primary tracking-widest uppercase mb-1">
+                      LANGKAH {num}
+                    </div>
+                    <h3 className="text-base font-bold text-text-primary mb-2">
+                      {title}
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      {desc}
+                    </p>
+                  </div>
+                </Card>
               </motion.div>
             ))}
           </div>
-        </div>
+        </PageContainer>
       </section>
 
       {/* ═══════════════════════════════════════════════════════
-          WHY US
+          6. WHY US (KENAPA TIXORA)
       ═══════════════════════════════════════════════════════ */}
-      <section className="section">
-        <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
-            <motion.div initial={{ opacity: 0, x: -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <span className="badge badge-primary" style={{ marginBottom: 20 }}>Kenapa TIXORA?</span>
-              <h2 style={{ marginBottom: 20 }}>
-                Platform Ticketing <span style={{ color: 'var(--color-primary)' }}>Paling Terpercaya</span>
+      <section className="py-20 border-t border-border">
+        <PageContainer size="lg">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-7 space-y-6">
+              <Badge variant="primary" size="sm">
+                Kenapa TIXORA?
+              </Badge>
+
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-text-primary tracking-tight leading-tight">
+                Platform Ticketing <span className="text-primary">Paling Terpercaya</span>
               </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.8 }}>
-                Kami menghadirkan teknologi anti-bot, sistem antrian yang fair, dan pengalaman pembelian tiket yang seamless untuk jutaan pecinta konser Indonesia.
+
+              <p className="text-sm sm:text-base text-text-secondary leading-relaxed">
+                Kami menghadirkan teknologi anti-bot mutakhir, sistem antrian yang fair, dan pengalaman pembelian tiket yang seamless bagi jutaan pecinta konser di Indonesia.
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              <div className="space-y-3 pt-2">
                 {[
-                  { icon: Shield,      text: 'Anti-bot protection & device fingerprinting', color: '#6366F1' },
-                  { icon: Users,       text: 'Virtual waiting room yang fair & transparan',  color: '#EC4899' },
-                  { icon: Zap,         text: 'Proses checkout super cepat < 10 menit',       color: '#F59E0B' },
-                  { icon: TrendingUp,  text: 'Real-time analytics untuk organizer',          color: '#10B981' },
-                ].map(({ icon: Icon, text, color }, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                      background: `${color}18`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <Icon size={16} style={{ color }} />
-                    </div>
-                    <span style={{ fontSize: '0.925rem', color: 'var(--text-secondary)' }}>{text}</span>
+                  'Sistem proteksi anti-bot & verifikasi fingerprint perangkat',
+                  'Virtual waiting room yang transparan dengan estimasi posisi real-time',
+                  'Proses checkout super cepat di bawah 10 menit dengan multi-gateway',
+                  'Fitur cashless FestPay & QR tiket dinamis anti-screenshot palsu',
+                ].map((text, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <CheckCircle2 size={18} className="text-success shrink-0 mt-0.5" />
+                    <span className="text-xs sm:text-sm text-text-secondary">{text}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 40, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                <Link href="/register" className="btn btn-primary">
-                  Daftar Gratis <ArrowRight size={16} />
-                </Link>
-                <Link href="/events" className="btn btn-secondary">
-                  Jelajahi Event
-                </Link>
-              </div>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 32 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}
-            >
-              {[
-                { label: '1M+',  sub: 'Tiket Terjual',   color: '#6366F1', icon: Ticket },
-                { label: '500+', sub: 'Event Sukses',     color: '#EC4899', icon: Star },
-                { label: '99%',  sub: 'Uptime SLA',       color: '#10B981', icon: Shield },
-                { label: '< 3s', sub: 'Response Time',    color: '#F59E0B', icon: Clock },
-              ].map(({ label, sub, color, icon: Icon }, i) => (
-                <motion.div
-                  key={i}
-                  whileHover={{ scale: 1.04, y: -4 }}
-                  style={{
-                    padding: 28, borderRadius: 20,
-                    background: `linear-gradient(135deg, ${color}0F, ${color}06)`,
-                    border: `1px solid ${color}25`,
-                    textAlign: 'center',
-                  }}
-                >
-                  <Icon size={28} style={{ color, margin: '0 auto 12px' }} />
-                  <div style={{ fontSize: '2rem', fontWeight: 900, color }}>{label}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════
-          CTA SECTION
-      ═══════════════════════════════════════════════════════ */}
-      <section className="section">
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{
-              borderRadius: 32, overflow: 'hidden', position: 'relative',
-              background: 'linear-gradient(135deg, #4F46E5, #7C3AED, #DB2777)',
-              padding: 'clamp(40px, 8vw, 80px)',
-              textAlign: 'center',
-            }}
-          >
-            {/* Bokeh */}
-            <div style={{ position: 'absolute', top: -60, left: -60, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', filter: 'blur(40px)' }} />
-            <div style={{ position: 'absolute', bottom: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', filter: 'blur(30px)' }} />
-
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><Ticket size={48} /></div>
-              <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 3rem)', marginBottom: 16, color: 'white' }}>
-                Siap War Tiket Konsermu?
-              </h2>
-              <p style={{ color: 'rgba(255,255,255,0.8)', maxWidth: 480, margin: '0 auto 40px', fontSize: '1.1rem' }}>
-                Bergabung dengan lebih dari 1 juta pengguna yang sudah mempercayakan pembelian tiket konser ke TIXORA.
-              </p>
-              <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Link href="/register" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '16px 32px', borderRadius: 12,
-                  background: 'white', color: '#4F46E5',
-                  fontWeight: 700, fontSize: '1rem',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
-                >
-                  Daftar Gratis Sekarang <ArrowRight size={18} />
+              <div className="flex flex-wrap items-center gap-3 pt-4">
+                <Link href="/register">
+                  <Button variant="primary" size="md">
+                    Daftar Akun Gratis <ArrowRight size={16} className="ml-1.5" />
+                  </Button>
                 </Link>
-                <Link href="/events" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '16px 32px', borderRadius: 12,
-                  background: 'rgba(255,255,255,0.12)', color: 'white',
-                  fontWeight: 700, fontSize: '1rem', border: '1px solid rgba(255,255,255,0.2)',
-                  transition: 'all 0.2s',
-                }}>
-                  Lihat Events <Play size={18} />
+                <Link href="/events">
+                  <Button variant="outline" size="md">
+                    Jelajahi Event
+                  </Button>
                 </Link>
               </div>
             </div>
-          </motion.div>
-        </div>
+
+            {/* Right KPI Stats */}
+            <div className="lg:col-span-5 grid grid-cols-2 gap-4">
+              {[
+                { label: '1M+', sub: 'Tiket Terjual', icon: Ticket, color: 'text-primary' },
+                { label: '500+', sub: 'Event Berhasil', icon: Star, color: 'text-secondary' },
+                { label: '99.9%', sub: 'Uptime SLA', icon: Shield, color: 'text-success' },
+                { label: '< 3s', sub: 'Response Time', icon: Clock, color: 'text-warning' },
+              ].map(({ label, sub, icon: Icon, color }, i) => (
+                <Card key={i} className="p-6 text-center hover:border-primary/40 transition-colors">
+                  <Icon size={24} className={`${color} mx-auto mb-2.5`} />
+                  <div className="text-2xl sm:text-3xl font-black text-text-primary mb-1">
+                    {label}
+                  </div>
+                  <div className="text-xs text-text-muted font-medium">
+                    {sub}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </PageContainer>
       </section>
 
+      {/* ═══════════════════════════════════════════════════════
+          7. CTA SECTION
+      ═══════════════════════════════════════════════════════ */}
+      <section className="py-20 border-t border-border">
+        <PageContainer size="lg">
+          <div className="rounded-3xl p-8 sm:p-14 text-center bg-gradient-to-r from-primary via-purple-700 to-secondary text-white shadow-2xl relative overflow-hidden">
+            {/* Background Blur Rings */}
+            <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 max-w-xl mx-auto space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mx-auto mb-4 border border-white/20">
+                <Ticket size={24} />
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+                Siap War Tiket Konsermu?
+              </h2>
+
+              <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md mx-auto mb-6">
+                Bergabung dengan lebih dari 1 juta pengguna yang mempercayakan pembelian tiket konser favorit ke TIXORA.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Link href="/register">
+                  <button className="px-6 py-3 rounded-xl bg-white text-primary font-extrabold text-sm hover:bg-white/90 transition-all shadow-lg cursor-pointer">
+                    Daftar Gratis Sekarang <ArrowRight size={16} className="inline ml-1" />
+                  </button>
+                </Link>
+                <Link href="/events">
+                  <button className="px-6 py-3 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-extrabold text-sm transition-all cursor-pointer">
+                    Lihat Events <Play size={15} className="inline ml-1" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </PageContainer>
+      </section>
     </main>
   );
 }

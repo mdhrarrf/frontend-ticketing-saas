@@ -1,65 +1,69 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiService } from '../../../lib/api';
+import { apiService } from '@/lib/api';
+import { formatRupiah, formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Plus, Calendar, MapPin, Ticket, TrendingUp,
-  Edit3, Trash2, Eye, Zap, Search, Filter, Loader2,
-  CheckCircle, Clock, XCircle, Archive
+  Trash2, Eye, Zap, Search, Clock, CheckCircle2
 } from 'lucide-react';
-
-function fmt(n: number) {
-  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
-  if (n >= 1_000)     return `Rp ${(n / 1_000).toFixed(0)}rb`;
-  return `Rp ${n.toLocaleString('id-ID')}`;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  published:      { label: 'Published',        color: '#10B981', bg: 'rgba(16,185,129,0.1)',  icon: CheckCircle },
-  draft:          { label: 'Draft',            color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', icon: Clock },
-  pending_review: { label: 'Menunggu Review',  color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', icon: Clock },
-  cancelled:      { label: 'Dibatalkan',       color: '#EF4444', bg: 'rgba(239,68,68,0.1)',   icon: XCircle },
-  ended:          { label: 'Selesai',          color: '#6366F1', bg: 'rgba(99,102,241,0.1)',  icon: Archive },
-};
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { EventStatusBadge } from '@/components/event/EventStatusBadge';
 
 const STATUS_FILTERS = [
-  { value: '',               label: 'Semua' },
-  { value: 'draft',          label: 'Draft' },
+  { value: '', label: 'Semua' },
+  { value: 'draft', label: 'Draft' },
   { value: 'pending_review', label: 'Menunggu Review' },
-  { value: 'published',      label: 'Published' },
-  { value: 'ended',          label: 'Selesai' },
-  { value: 'cancelled',      label: 'Dibatalkan' },
+  { value: 'published', label: 'Published' },
+  { value: 'ended', label: 'Selesai' },
+  { value: 'cancelled', label: 'Dibatalkan' },
 ];
 
 export default function OrganizerEventsPage() {
-  const [events,       setEvents]       = useState<any[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [actionLoading,setActionLoading]= useState<string | null>(null);
-  const [search,       setSearch]       = useState('');
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const res = await apiService.organizer.getEvents({ search: search || undefined, status: statusFilter || undefined });
+      const res = await apiService.organizer.getEvents({
+        search: search || undefined,
+        status: statusFilter || undefined
+      });
       const d = (res as any)?.data ?? res;
       setEvents(Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []);
-    } catch { setEvents([]); }
-    finally { setLoading(false); }
+    } catch {
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchEvents(); }, [search, statusFilter]);
+  useEffect(() => {
+    fetchEvents();
+  }, [search, statusFilter]);
 
   const handleSubmitForReview = async (id: string) => {
     setActionLoading(id + ':publish');
     try {
-      await apiService.organizer.publishEvent(id); // backend sets status to pending_review for organizer role
-      setEvents(prev => prev.map(e => e.id == id ? { ...e, status: 'pending_review' } : e));
+      await apiService.organizer.publishEvent(id);
+      setEvents((prev) =>
+        prev.map((e) => (e.id == id ? { ...e, status: 'pending_review' } : e))
+      );
     } catch (e: any) {
       alert(e?.response?.data?.message || 'Gagal mengajukan event ke review');
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleDelete = async (id: string, title: string) => {
@@ -67,165 +71,240 @@ export default function OrganizerEventsPage() {
     setActionLoading(id + ':delete');
     try {
       await apiService.organizer.deleteEvent(id);
-      setEvents(prev => prev.filter(e => e.id != id));
+      setEvents((prev) => prev.filter((e) => e.id != id));
     } catch (e: any) {
       alert(e?.response?.data?.message || 'Gagal menghapus event');
-    } finally { setActionLoading(null); }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const filtered = events.filter(e =>
+  const filtered = events.filter((e) =>
     (!search || e.title?.toLowerCase().includes(search.toLowerCase())) &&
     (!statusFilter || e.status === statusFilter)
   );
 
   return (
-    <div>
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, marginBottom: 4 }}>Event Saya</h1>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>{events.length} event ditemukan</p>
-          </div>
-          <Link href="/organizer/events/create"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, background: 'var(--color-primary)', color: 'white', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', boxShadow: 'var(--glow-sm)' }}>
-            <Plus size={16} /> Buat Event Baru
-          </Link>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Page Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary tracking-tight">
+            Event Saya
+          </h1>
+          <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+            {events.length} event terdaftar dalam akun organizer Anda
+          </p>
         </div>
+        <Link href="/organizer/events/create">
+          <Button variant="primary" size="md">
+            <Plus size={16} className="mr-1.5" /> Buat Event Baru
+          </Button>
+        </Link>
       </motion.div>
 
-      {/* Filters */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
+      {/* Filter Controls */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between"
+      >
         {/* Search */}
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div className="relative flex-1 max-w-md">
+          <Search
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+          />
           <input
+            type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Cari event..."
-            className="input"
-            style={{ paddingLeft: 36 }}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama event..."
+            className="w-full bg-card border border-border rounded-xl pl-9.5 pr-4 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-hidden focus:border-primary transition-colors"
           />
         </div>
+
         {/* Status Filter Chips */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {STATUS_FILTERS.map(s => (
-            <button key={s.value} onClick={() => setStatusFilter(s.value)}
-              style={{
-                padding: '7px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
-                background: statusFilter === s.value ? 'var(--color-primary)' : 'var(--card)',
-                color: statusFilter === s.value ? 'white' : 'var(--text-secondary)',
-                border: `1px solid ${statusFilter === s.value ? 'var(--color-primary)' : 'var(--border)'}`,
-                transition: 'all 0.2s',
-              }}>
+        <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setStatusFilter(s.value)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                statusFilter === s.value
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-card hover:bg-background-elevated text-text-secondary border border-border'
+              }`}
+            >
               {s.label}
             </button>
           ))}
         </div>
       </motion.div>
 
-      {/* Event Cards */}
+      {/* Event Cards List */}
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} style={{ height: 90, borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <Card key={i} className="p-5 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="space-y-2 w-full md:w-1/2">
+                <Skeleton className="h-5 w-3/4 rounded-md" />
+                <Skeleton className="h-4 w-1/2 rounded-md" />
+              </div>
+              <div className="flex gap-6 w-full md:w-auto justify-between md:justify-end">
+                <Skeleton className="h-10 w-24 rounded-lg" />
+                <Skeleton className="h-10 w-28 rounded-lg" />
+                <Skeleton className="h-10 w-20 rounded-lg" />
+              </div>
+            </Card>
           ))}
         </div>
       ) : filtered.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="space-y-3">
           {filtered.map((event: any, i: number) => {
-            const sc = STATUS_CONFIG[event.status] ?? STATUS_CONFIG.draft;
-            const StatusIcon = sc.icon;
-            const soldPercent = event.total_quota ? Math.round((event.tickets_sold / event.total_quota) * 100) : 0;
-            return (
-              <motion.div key={event.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
-                  {/* Left accent */}
-                  <div style={{ width: 4, alignSelf: 'stretch', background: sc.color, flexShrink: 0 }} />
+            const soldPercent = event.total_quota
+              ? Math.round((event.tickets_sold / event.total_quota) * 100)
+              : 0;
 
-                  {/* Main info */}
-                  <div style={{ flex: 1, padding: '16px 18px', minWidth: 200 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{event.title}</span>
+            return (
+              <motion.div
+                key={event.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+              >
+                <Card
+                  variant="interactive"
+                  className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                >
+                  {/* Left: Main Event Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <h3 className="text-base sm:text-lg font-bold text-text-primary truncate">
+                        {event.title}
+                      </h3>
                       {event.is_war_ticket && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, background: 'rgba(245,158,11,0.1)', color: '#F59E0B', fontSize: '0.68rem', fontWeight: 700 }}>
-                          <Zap size={10} /> WAR
-                        </span>
+                        <Badge variant="warning" size="sm" className="flex items-center gap-1">
+                          <Zap size={11} className="fill-warning" /> WAR TICKET
+                        </Badge>
                       )}
+                      <EventStatusBadge status={event.status} size="sm" />
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={12} />
-                        {event.event_date ? new Date(event.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar size={13} className="text-text-muted" />
+                        {event.event_date ? formatDate(event.event_date) : '-'}
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <MapPin size={12} /> {event.venue_name ?? '-'}, {event.venue_city ?? '-'}
+                      <span className="flex items-center gap-1.5">
+                        <MapPin size={13} className="text-text-muted" />
+                        {event.venue_name ?? '-'}
+                        {event.venue_city ? `, ${event.venue_city}` : ''}
                       </span>
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div style={{ display: 'flex', gap: 0, borderLeft: '1px solid var(--border)' }}>
-                    <div style={{ padding: '12px 18px', textAlign: 'center', borderRight: '1px solid var(--border)', minWidth: 90 }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Terjual</div>
-                      <div style={{ fontWeight: 800, fontSize: '1rem' }}>{(event.tickets_sold ?? 0).toLocaleString()}</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>/ {(event.total_quota ?? 0).toLocaleString()}</div>
-                      <div style={{ marginTop: 5, height: 3, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: 2, background: soldPercent >= 80 ? '#EF4444' : 'var(--color-primary)', width: `${Math.min(soldPercent, 100)}%` }} />
+                  {/* Middle: Stats Columns */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 lg:gap-6 border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6 shrink-0">
+                    <div>
+                      <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">
+                        Tiket Terjual
+                      </div>
+                      <div className="text-sm sm:text-base font-extrabold text-text-primary">
+                        {(event.tickets_sold ?? 0).toLocaleString('id-ID')}{' '}
+                        <span className="text-xs font-normal text-text-muted">
+                          / {(event.total_quota ?? 0).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      <div className="w-28 sm:w-32 bg-background-elevated h-1.5 rounded-full overflow-hidden mt-1.5 border border-border/50">
+                        <div
+                          className="bg-primary h-full rounded-full transition-all"
+                          style={{ width: `${Math.min(soldPercent, 100)}%` }}
+                        />
                       </div>
                     </div>
-                    <div style={{ padding: '12px 18px', textAlign: 'center', borderRight: '1px solid var(--border)', minWidth: 110 }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Pendapatan</div>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{fmt(Number(event.revenue ?? 0))}</div>
-                    </div>
-                    <div style={{ padding: '12px 18px', textAlign: 'center', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 100 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 700, color: sc.color, background: sc.bg }}>
-                        <StatusIcon size={11} /> {sc.label}
-                      </span>
+
+                    <div>
+                      <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">
+                        Pendapatan
+                      </div>
+                      <div className="text-sm sm:text-base font-extrabold text-primary">
+                        {formatRupiah(Number(event.revenue ?? 0))}
+                      </div>
+                      <div className="text-[11px] text-text-muted mt-1">
+                        {soldPercent}% dari kuota
+                      </div>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 16px', borderLeft: '1px solid var(--border)' }}>
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-2 border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6 shrink-0 justify-end">
                     {event.status === 'draft' && (
-                      <button onClick={() => handleSubmitForReview(String(event.id))} disabled={actionLoading === event.id + ':publish'}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#6366F1', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                        {actionLoading === event.id + ':publish' ? <Loader2 size={11} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> : <CheckCircle size={11} />}
-                        Ajukan ke Admin
-                      </button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleSubmitForReview(String(event.id))}
+                        loading={actionLoading === event.id + ':publish'}
+                      >
+                        <CheckCircle2 size={13} className="mr-1" />
+                        Ajukan Review
+                      </Button>
                     )}
+
                     {event.status === 'pending_review' && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)', color: '#F59E0B', fontSize: '0.78rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        <Clock size={11} /> Menunggu Review
-                      </span>
+                      <Badge variant="warning" size="md" className="flex items-center gap-1 py-1.5 px-3">
+                        <Clock size={13} />
+                        Menunggu Review
+                      </Badge>
                     )}
-                    <button onClick={() => handleDelete(String(event.id), event.title)} disabled={!!actionLoading}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: 'var(--danger-bg)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      {actionLoading === event.id + ':delete' ? <Loader2 size={11} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> : <Trash2 size={11} />}
-                      Hapus
-                    </button>
+
+                    <Link href={`/events/${event.slug || event.id}`} target="_blank">
+                      <Button variant="outline" size="sm" aria-label="Lihat event di web publik">
+                        <Eye size={14} />
+                      </Button>
+                    </Link>
+
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(String(event.id), event.title)}
+                      loading={actionLoading === event.id + ':delete'}
+                      disabled={!!actionLoading}
+                      aria-label="Hapus event"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
                   </div>
-                </div>
+                </Card>
               </motion.div>
             );
           })}
         </div>
       ) : (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16 }}>
-          <Calendar size={40} style={{ margin: '0 auto 16px', color: 'var(--text-muted)', opacity: 0.4 }} />
-          <h3 style={{ marginBottom: 8 }}>Belum ada event</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: 20 }}>
-            {search || statusFilter ? 'Tidak ada event yang cocok dengan filter.' : 'Mulai buat event pertama Anda sekarang!'}
-          </p>
-          {!search && !statusFilter && (
-            <Link href="/organizer/events/create" className="btn btn-primary">
-              + Buat Event Sekarang
-            </Link>
-          )}
-        </motion.div>
+        <EmptyState
+          icon={<Ticket className="w-8 h-8 text-text-muted" />}
+          title="Belum Ada Event"
+          description={
+            search || statusFilter
+              ? 'Tidak ada event yang sesuai dengan kriteria pencarian dan filter.'
+              : 'Anda belum membuat event. Mulai buat event konser atau festival pertama Anda sekarang!'
+          }
+          action={
+            !search && !statusFilter ? (
+              <Link href="/organizer/events/create">
+                <Button variant="primary">
+                  <Plus size={16} className="mr-1.5" /> Buat Event Sekarang
+                </Button>
+              </Link>
+            ) : undefined
+          }
+          className="py-16 bg-card border border-border rounded-3xl"
+        />
       )}
     </div>
   );

@@ -7,61 +7,55 @@ import {
   Users, Clock, Zap, Shield, AlertTriangle, CheckCircle,
   ArrowRight, RefreshCw, WifiOff
 } from 'lucide-react';
-import { apiService } from '../../../../lib/api';
-import { useAuthStore } from '../../../../store/authStore';
-import type { QueueStatus } from '../../../../types';
+import { apiService } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
+import type { QueueStatus } from '@/types';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { Alert } from '@/components/ui/Alert';
 
 // Queue position ring animation
 function QueueRing({ position }: { position: number }) {
   return (
-    <div style={{ position: 'relative', width: 240, height: 240, margin: '0 auto' }}>
+    <div className="relative w-56 h-56 mx-auto">
       {/* Outer ring */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: '50%',
-        border: '6px solid rgba(99,102,241,0.1)',
-      }}>
-      </div>
+      <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
 
       {/* Inner glow ring */}
-      <div style={{
-        position: 'absolute', inset: 12, borderRadius: '50%',
-        border: '1px solid var(--border)', background: 'var(--card-hover)',
-      }} />
+      <div className="absolute inset-3 rounded-full border border-border bg-card/60 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center shadow-inner" />
 
       {/* Content */}
-      <div style={{
-        position: 'absolute', inset: 0, display: 'flex',
-        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <div className="text-[11px] font-bold text-text-muted tracking-widest uppercase mb-1">
           Posisi Kamu
         </div>
         <motion.div
           key={position}
-          initial={{ scale: 1.1, opacity: 0 }}
+          initial={{ scale: 1.15, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}
+          className="text-4xl sm:text-5xl font-black text-text-primary tracking-tight leading-none"
         >
           {position.toLocaleString('id-ID')}
         </motion.div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 8 }}>dalam antrian</div>
+        <div className="text-xs text-text-muted mt-2 font-medium">dalam antrian</div>
       </div>
     </div>
   );
 }
 
 export default function WaitingRoomPage({ params }: { params: Promise<{ eventId: string }> }) {
-  const { eventId }   = use(params);
-  const router        = useRouter();
+  const { eventId } = use(params);
+  const router = useRouter();
   const { user, token } = useAuthStore();
 
-  const [status,      setStatus]    = useState<QueueStatus | null>(null);
-  const [loading,     setLoading]   = useState(true);
-  const [joining,     setJoining]   = useState(false);
-  const [joined,      setJoined]    = useState(false);
-  const [error,       setError]     = useState('');
-  const [lastUpdate,  setLastUpdate] = useState(new Date());
-  const [offline,     setOffline]   = useState(false);
+  const [status, setStatus] = useState<QueueStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [error, setError] = useState('');
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [offline, setOffline] = useState(false);
   const [waitMinutes, setWaitMinutes] = useState(0);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -76,7 +70,7 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
   const fetchStatus = useCallback(async () => {
     try {
       const res = await apiService.queue.getQueueStatus(eventId);
-      const d   = (res as any)?.data ?? res;
+      const d = (res as any)?.data ?? res;
       setStatus(d);
       setJoined(!!d?.session_token || d?.status === 'waiting' || d?.status === 'in_queue' || d?.status === 'checkout');
       setLastUpdate(new Date());
@@ -90,7 +84,7 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
 
       // Estimate wait
       if (d?.position && d?.position > 0) {
-        setWaitMinutes(Math.ceil(d.position / 100) * 0.5); // rough estimate
+        setWaitMinutes(Math.ceil(d.position / 100) * 0.5);
       }
     } catch (e: any) {
       if (e?.response?.status !== 404) setOffline(true);
@@ -99,7 +93,10 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
 
   // Join queue
   const joinQueue = async () => {
-    if (!user) { router.push('/login'); return; }
+    if (!user) {
+      router.push('/login');
+      return;
+    }
     setJoining(true);
     setError('');
     try {
@@ -112,7 +109,7 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
       setStatus(d);
       setJoined(true);
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Gagal bergabung. Coba lagi.');
+      setError(e?.response?.data?.message ?? 'Gagal bergabung. Silakan coba lagi.');
     } finally {
       setJoining(false);
     }
@@ -133,41 +130,45 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
     if (joined) {
       pollRef.current = setInterval(fetchStatus, 5000);
     }
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [joined, fetchStatus]);
 
   if (!token) return null;
 
   const position = status?.position ?? 0;
-  const total    = status?.total_in_queue ?? 0;
+  const total = status?.total_in_queue ?? 0;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', background: 'var(--background)', padding: '24px 16px' }}>
-
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 560 }}>
-
+    <div className="min-h-screen flex flex-col items-center justify-center relative bg-background text-text-primary px-4 py-8 sm:py-12">
+      <div className="relative z-10 w-full max-w-lg">
         {/* ─── TOP STATUS BAR ─────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 8 }}
+          className="flex justify-between items-center mb-6 flex-wrap gap-2 text-xs text-text-muted"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Zap size={18} style={{ color: '#F59E0B' }} />
-            <span style={{ fontWeight: 700, fontSize: '1rem' }}>War Ticket Waiting Room</span>
+          <div className="flex items-center gap-2 font-bold text-text-primary">
+            <Zap size={16} className="text-warning fill-warning" />
+            <span>War Ticket Waiting Room</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="flex items-center gap-3">
             {offline && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--danger)' }}>
-                <WifiOff size={12} /> Offline
+              <span className="flex items-center gap-1 text-danger font-semibold">
+                <WifiOff size={13} /> Offline
               </span>
             )}
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span>
               Update: {lastUpdate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
             {joined && (
-              <button onClick={fetchStatus} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 0 }}>
-                <RefreshCw size={14} />
+              <button
+                onClick={fetchStatus}
+                className="hover:text-text-primary cursor-pointer transition-colors p-1"
+                aria-label="Refresh status"
+              >
+                <RefreshCw size={13} />
               </button>
             )}
           </div>
@@ -176,181 +177,178 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
         {/* ─── MAIN CARD ──────────────────────────────────── */}
         <AnimatePresence mode="wait">
           {loading ? (
-            <motion.div key="loading" exit={{ opacity: 0 }} style={{ textAlign: 'center', padding: 48 }}>
-              <div style={{ width: 48, height: 48, border: '3px solid rgba(99,102,241,0.3)', borderTopColor: 'var(--color-primary)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin-slow 0.8s linear infinite' }} />
-              <p style={{ color: 'var(--text-muted)' }}>Memeriksa antrian...</p>
+            <motion.div
+              key="loading"
+              exit={{ opacity: 0 }}
+              className="text-center p-12 bg-card border border-border rounded-3xl"
+            >
+              <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm text-text-muted">Memeriksa status antrian...</p>
             </motion.div>
-
           ) : !joined ? (
             <motion.div
               key="join"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              style={{
-                padding: 48, borderRadius: 24, textAlign: 'center',
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                boxShadow: 'var(--glow-sm)',
-              }}
+              className="p-6 sm:p-10 rounded-3xl text-center bg-card border border-border shadow-xl"
             >
-              {/* Clean solid icon */}
-              <div
-                style={{
-                  width: 80, height: 80, borderRadius: 20, margin: '0 auto 24px',
-                  background: 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                <Zap size={36} color="white" />
+              {/* Solid Accent Icon */}
+              <div className="w-16 h-16 rounded-2xl mx-auto mb-6 bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                <Zap size={32} className="fill-primary" />
               </div>
 
-              <h1 style={{ marginBottom: 12, fontSize: '1.8rem', color: 'var(--text-primary)' }}>
-                Siap Masuk <span style={{ color: 'var(--color-primary)' }}>Antrian?</span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-text-primary mb-3">
+                Siap Masuk <span className="text-primary">Antrian?</span>
               </h1>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.7, fontSize: '0.95rem' }}>
-                Kamu akan masuk ke virtual waiting room. Sistem kami akan memproses secara <strong>fair & anti-bot</strong>. Pastikan kamu siap sebelum tombol ditekan!
+              <p className="text-text-secondary text-sm leading-relaxed mb-6">
+                Kamu akan masuk ke virtual waiting room berkapasitas tinggi. Sistem memproses urutan secara <strong>fair & anti-bot</strong>.
               </p>
 
               {/* Queue stats preview */}
               {total > 0 && (
-                <div style={{
-                  display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 32, flexWrap: 'wrap',
-                }}>
-                  <div style={{ padding: '16px 24px', borderRadius: 16, background: 'var(--background-2)', border: '1px solid var(--border)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{total.toLocaleString('id-ID')}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4, fontWeight: 600, textTransform: 'uppercase' }}>Dalam antrian</div>
+                <div className="flex justify-center mb-6">
+                  <div className="px-6 py-3 rounded-2xl bg-background border border-border text-center">
+                    <div className="text-2xl font-black text-primary">
+                      {total.toLocaleString('id-ID')}
+                    </div>
+                    <div className="text-[11px] text-text-muted font-bold uppercase tracking-wider mt-0.5">
+                      Orang dalam antrian
+                    </div>
                   </div>
                 </div>
               )}
 
               {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  style={{
-                    padding: '12px 16px', borderRadius: 10, marginBottom: 20,
-                    background: 'var(--danger-bg)', border: '1px solid rgba(239,68,68,0.3)',
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    color: 'var(--danger)', fontSize: '0.875rem',
-                  }}
-                >
-                  <AlertTriangle size={16} />
+                <Alert variant="danger" className="mb-6 text-left">
                   {error}
-                </motion.div>
+                </Alert>
               )}
 
-              <button
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full text-base font-extrabold"
                 onClick={joinQueue}
-                disabled={joining}
-                className="btn btn-primary btn-xl"
-                style={{ width: '100%', fontSize: '1.1rem' }}
+                loading={joining}
               >
-                {joining ? (
-                  <><div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin-slow 0.8s linear infinite' }} /> Bergabung...</>
-                ) : (
-                  <><Zap size={20} /> Masuk Waiting Room</>
-                )}
-              </button>
+                <Zap size={18} className="mr-2 fill-white" />
+                Masuk Waiting Room
+              </Button>
 
-              <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                <span><Shield size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> Anti-bot</span>
-                <span><CheckCircle size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> Fair Queue</span>
-                <span><Clock size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> 10 menit checkout</span>
+              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-text-muted">
+                <span className="flex items-center gap-1.5">
+                  <Shield size={13} className="text-success" /> Anti-bot Protection
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle size={13} className="text-primary" /> Fair First-Come
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock size={13} className="text-warning" /> 10 Menit Checkout
+                </span>
               </div>
             </motion.div>
-
           ) : status?.status === 'checkout' ? (
             <motion.div
               key="checkout"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{ padding: 48, borderRadius: 24, textAlign: 'center', background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--glow-sm)' }}
+              className="p-8 sm:p-12 rounded-3xl text-center bg-card border border-border shadow-xl"
             >
-              <div
-                style={{ width: 80, height: 80, borderRadius: 20, background: 'var(--success-bg)', margin: '0 auto 24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <CheckCircle size={40} style={{ color: 'var(--success)' }} />
+              <div className="w-16 h-16 rounded-2xl bg-success/15 border border-success/30 text-success mx-auto mb-6 flex items-center justify-center">
+                <CheckCircle size={36} />
               </div>
-              <h2 style={{ color: 'var(--success)', marginBottom: 12 }}>Giliranmu Tiba!</h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Kamu sedang diarahkan ke halaman checkout...</p>
-              <div style={{ width: 40, height: 40, border: '3px solid rgba(16,185,129,0.3)', borderTopColor: 'var(--success)', borderRadius: '50%', margin: '0 auto', animation: 'spin-slow 0.8s linear infinite' }} />
+              <h2 className="text-2xl font-black text-success mb-2">Giliranmu Tiba!</h2>
+              <p className="text-text-secondary text-sm mb-6">
+                Kamu sedang diarahkan otomatis ke halaman pembayaran checkout...
+              </p>
+              <div className="w-8 h-8 border-3 border-success/30 border-t-success rounded-full animate-spin mx-auto" />
             </motion.div>
-
           ) : (
             <motion.div
               key="waiting"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              style={{
-                padding: 48, borderRadius: 24, textAlign: 'center',
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                boxShadow: 'var(--glow-sm)',
-              }}
+              className="p-6 sm:p-10 rounded-3xl text-center bg-card border border-border shadow-xl"
             >
               {/* Queue ring */}
               <QueueRing position={position} />
 
-              <div style={{ marginTop: 32, marginBottom: 24 }}>
-                <h2 style={{ marginBottom: 8, color: 'var(--text-primary)' }}>Kamu dalam antrian</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  Sistem sedang memproses <strong>{total.toLocaleString('id-ID')}</strong> orang dalam antrian
+              <div className="mt-6 mb-6">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary mb-1.5">
+                  Kamu Sedang Dalam Antrian
+                </h2>
+                <p className="text-text-secondary text-xs sm:text-sm">
+                  Sistem sedang memproses tiket untuk <strong>{total.toLocaleString('id-ID')}</strong> pengguna aktif.
                 </p>
               </div>
 
               {/* Stats row */}
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
-                {[
-                  { icon: Users, label: 'Total Antrian', value: total.toLocaleString('id-ID') },
-                  { icon: Clock, label: 'Est. Tunggu',   value: waitMinutes > 0 ? `~${waitMinutes} mnt` : 'Segera' },
-                  { icon: Shield,label: 'Status',        value: 'Aman' },
-                ].map(({ icon: Icon, label, value }) => (
-                  <div key={label} style={{
-                    padding: '16px 20px', borderRadius: 16, textAlign: 'center', minWidth: 100,
-                    background: 'var(--background-2)', border: '1px solid var(--border)',
-                  }}>
-                    <Icon size={20} style={{ color: 'var(--text-secondary)', margin: '0 auto 8px' }} />
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: 2, color: 'var(--text-primary)' }}>{value}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>{label}</div>
+              <div className="grid grid-cols-3 gap-2.5 mb-6">
+                <div className="p-3 rounded-2xl bg-background border border-border text-center">
+                  <Users size={18} className="text-text-muted mx-auto mb-1.5" />
+                  <div className="text-sm sm:text-base font-extrabold text-text-primary">
+                    {total.toLocaleString('id-ID')}
                   </div>
-                ))}
+                  <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
+                    Total
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-background border border-border text-center">
+                  <Clock size={18} className="text-text-muted mx-auto mb-1.5" />
+                  <div className="text-sm sm:text-base font-extrabold text-text-primary">
+                    {waitMinutes > 0 ? `~${waitMinutes} mnt` : 'Segera'}
+                  </div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
+                    Estimasi
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-background border border-border text-center">
+                  <Shield size={18} className="text-success mx-auto mb-1.5" />
+                  <div className="text-sm sm:text-base font-extrabold text-success">
+                    Aktif
+                  </div>
+                  <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
+                    Status
+                  </div>
+                </div>
               </div>
 
-              {/* Progress indicator */}
-              <div style={{ marginBottom: 28 }}>
-                <div className="progress-bar">
+              {/* Animated Progress indicator */}
+              <div className="mb-6">
+                <div className="h-2 w-full bg-background rounded-full overflow-hidden relative border border-border">
                   <motion.div
-                    className="progress-fill"
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                    style={{ width: '40%' }}
+                    className="h-full bg-primary rounded-full"
+                    animate={{ x: ['-100%', '150%'] }}
+                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                    style={{ width: '45%' }}
                   />
                 </div>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                  <Zap size={12} style={{ display: 'inline', marginRight: 4 }} /> Antrian diproses otomatis. Halaman ini refresh setiap 5 detik.
+                <p className="text-[11px] text-text-muted mt-2 flex items-center justify-center gap-1">
+                  <Zap size={12} className="text-primary" /> Antrian diproses otomatis. Sistem me-refresh tiap 5 detik.
                 </p>
               </div>
 
-              {/* Tips */}
-              <div style={{
-                padding: '24px', borderRadius: 16, marginBottom: 24,
-                background: 'var(--background-2)', border: '1px solid var(--border)',
-                textAlign: 'left',
-              }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, marginBottom: 16, color: 'var(--text-primary)' }}>Tips War Ticket</div>
-                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {[
-                    'Jangan refresh atau tutup halaman ini!',
-                    'Siapkan data dirimu (KTP/Paspor) sebelumnya',
-                    'Siapkan metode pembayaran favoritmu',
-                    'Setelah masuk checkout, bayar dalam 10 menit!',
-                  ].map((tip, i) => (
-                    <li key={i} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{ color: 'var(--color-primary)', flexShrink: 0, fontWeight: 700 }}>{i + 1}.</span>
-                      {tip}
-                    </li>
-                  ))}
+              {/* Tips Box */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-background border border-border text-left">
+                <div className="text-xs font-bold text-text-primary mb-2.5">
+                  Tips Penting War Ticket:
+                </div>
+                <ul className="space-y-1.5 text-xs text-text-muted">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-bold">1.</span>
+                    Jangan me-refresh browser atau menutup tab ini.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-bold">2.</span>
+                    Pastikan koneksi internet stabil.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-bold">3.</span>
+                    Setelah masuk checkout, selesaikan pembayaran dalam 10 menit.
+                  </li>
                 </ul>
               </div>
             </motion.div>
@@ -358,18 +356,9 @@ export default function WaitingRoomPage({ params }: { params: Promise<{ eventId:
         </AnimatePresence>
 
         {/* ─── EVENT INFO FOOTER ───────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          style={{ marginTop: 24, textAlign: 'center' }}
-        >
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Dengan memasuki waiting room, kamu setuju dengan{' '}
-            <a href="/terms" style={{ color: 'var(--color-primary)' }}>syarat & ketentuan</a>{' '}
-            Tixora.
-          </p>
-        </motion.div>
+        <div className="mt-6 text-center text-xs text-text-muted">
+          Dengan berada dalam waiting room, kamu menyetujui Ketentuan Tiket TIXORA.
+        </div>
       </div>
     </div>
   );

@@ -3,25 +3,26 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { apiService } from '../../../../lib/api';
-import { Ticket, Calendar, MapPin, ChevronRight, Search, QrCode } from 'lucide-react';
-import DynamicTicketModal from '../../../../components/tickets/DynamicTicketModal';
+import { apiService } from '@/lib/api';
+import { Ticket as TicketIcon, Calendar, MapPin, Search, QrCode } from 'lucide-react';
+import DynamicTicketModal from '@/components/tickets/DynamicTicketModal';
+import { Button, Card, Badge, Input, EmptyState, Skeleton } from '@/components/ui';
+import { PageHeader } from '@/components/layout';
+import { TicketStatusBadge } from '@/components/ticket/TicketStatusBadge';
+import { formatDate } from '@/lib/utils';
 
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  valid:   { label: 'Valid',          color: '#10B981', bg: 'rgba(16,185,129,0.1)'  },
-  active:  { label: 'Valid',          color: '#10B981', bg: 'rgba(16,185,129,0.1)'  },
-  used:    { label: 'Sudah Dipakai',  color: '#94A3B8', bg: 'rgba(148,163,184,0.1)' },
-  expired: { label: 'Kadaluarsa',     color: '#EF4444', bg: 'rgba(239,68,68,0.1)'   },
-  transferred: { label: 'Dipindahkan', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
-};
-
-const FILTERS = ['Semua', 'Valid', 'Sudah Dipakai', 'Kadaluarsa'];
+const FILTERS = [
+  { key: 'all', label: 'Semua' },
+  { key: 'valid', label: 'Valid / Aktif' },
+  { key: 'used', label: 'Sudah Dipakai' },
+  { key: 'expired', label: 'Kadaluarsa' },
+];
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter,  setFilter]  = useState('Semua');
-  const [search,  setSearch]  = useState('');
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
 
   useEffect(() => {
@@ -29,7 +30,6 @@ export default function TicketsPage() {
       try {
         setLoading(true);
         const res = await apiService.tickets.getTickets();
-        // handle both paginated {data: [...]} and plain array responses
         const raw = (res as any)?.data ?? res;
         const arr = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
         setTickets(arr);
@@ -42,164 +42,154 @@ export default function TicketsPage() {
     })();
   }, []);
 
-  const filtered = tickets.filter(t => {
+  const filtered = tickets.filter((t) => {
+    const statusVal = t.status || 'valid';
     const matchFilter =
-      filter === 'Semua'       ? true :
-      filter === 'Valid'       ? t.status === 'valid' :
-      filter === 'Sudah Dipakai' ? t.status === 'used' :
-      filter === 'Kadaluarsa'  ? t.status === 'expired' :
-      true;
-    const matchSearch = !search || (t.event_name ?? '').toLowerCase().includes(search.toLowerCase());
+      filter === 'all'
+        ? true
+        : filter === 'valid'
+        ? statusVal === 'valid' || statusVal === 'active'
+        : filter === 'used'
+        ? statusVal === 'used' || !!t.checked_in_at
+        : filter === 'expired'
+        ? statusVal === 'expired'
+        : true;
+
+    const eventTitle = t.event?.title || t.event_name || '';
+    const matchSearch =
+      !search ||
+      eventTitle.toLowerCase().includes(search.toLowerCase()) ||
+      (t.ticket_number || '').toLowerCase().includes(search.toLowerCase());
+
     return matchFilter && matchSearch;
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-          Tiket Saya
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
-          Semua tiket event yang sudah kamu beli
-        </p>
-      </div>
+      <PageHeader
+        title="Tiket Konser Saya"
+        description="Daftar seluruh e-ticket resmi dengan perlindungan Dynamic QR Code anti-screenshot 30 detik"
+      />
 
-      {/* Search + Filter bar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Search */}
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-          <input
-            type="text"
-            className="input"
-            placeholder="Cari nama event..."
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="w-full sm:w-72">
+          <Input
+            placeholder="Cari event atau nomor tiket..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ paddingLeft: 36, height: 38, fontSize: '0.85rem' }}
+            onChange={(e) => setSearch(e.target.value)}
+            className="text-xs"
           />
         </div>
 
-        {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500,
-                cursor: 'pointer', transition: 'all 0.15s', border: '1px solid var(--border)',
-                background: filter === f ? 'var(--color-primary)' : 'var(--card)',
-                color: filter === f ? 'white' : 'var(--text-secondary)',
-              }}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {FILTERS.map((f) => {
+            const isActive = filter === f.key;
+            return (
+              <Button
+                key={f.key}
+                variant={isActive ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setFilter(f.key)}
+                className="text-xs font-semibold whitespace-nowrap"
+              >
+                {f.label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Content */}
+      {/* Tickets Grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} style={{ height: 160, borderRadius: 12, background: 'var(--background-2)', opacity: 0.6 }} />
+            <Skeleton key={i} className="h-48 w-full rounded-2xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{
-          textAlign: 'center', padding: '48px 0', borderRadius: 14,
-          background: 'var(--card)', border: '1px solid var(--border)',
-        }}>
-          <Ticket size={32} style={{ margin: '0 auto 12px', color: 'var(--text-muted)', opacity: 0.4 }} />
-          <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>Tidak ada tiket</p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
-            {search ? `Tidak ada hasil untuk "${search}"` : 'Belum ada tiket di kategori ini.'}
-          </p>
-        </div>
+        <EmptyState
+          icon={<TicketIcon className="w-8 h-8 text-text-muted" />}
+          title="Tidak Ada Tiket"
+          description={
+            search
+              ? `Tidak ditemukan tiket untuk "${search}"`
+              : 'Anda belum memiliki tiket di kategori ini.'
+          }
+          action={
+            <Link href="/events">
+              <Button variant="primary" size="sm">
+                Jelajahi Events
+              </Button>
+            </Link>
+          }
+          className="py-16"
+        />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((ticket, i) => {
-            const st = STATUS_MAP[ticket.status] ?? { label: ticket.status, color: '#94A3B8', bg: 'rgba(148,163,184,0.1)' };
-            const eventDate = ticket.event_date ? new Date(ticket.event_date) : null;
+            const isUsed = ticket.status === 'used' || !!ticket.checked_in_at;
+            const eventDate = ticket.event?.event_date || ticket.event_date;
             return (
               <motion.div
-                key={ticket.id}
-                initial={{ opacity: 0, y: 12 }}
+                key={ticket.id || ticket.ticket_number}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
               >
-                <div
+                <Card
+                  variant="interactive"
                   onClick={() => setSelectedTicket(ticket)}
-                  style={{ cursor: 'pointer', display: 'block' }}
+                  className="cursor-pointer overflow-hidden border-border/80 flex flex-col justify-between h-full group"
                 >
-                  <div
-                    style={{
-                      borderRadius: 14, overflow: 'hidden',
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      transition: 'border-color 0.15s, transform 0.15s',
-                    }}
-                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(99, 102, 241, 0.4)'; el.style.transform = 'translateY(-2px)'; }}
-                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'var(--border)'; el.style.transform = 'none'; }}
-                  >
-                    {/* Card header strip */}
-                    <div style={{ height: 4, background: 'var(--color-primary)' }} />
+                  {/* Decorative Top Accent Bar */}
+                  <div className={`h-1.5 ${isUsed ? 'bg-text-muted' : 'bg-primary'}`} />
 
-                    <div style={{ padding: '16px' }}>
-                      {/* Title + status */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.3, flex: 1 }}>
-                          {ticket.event_name ?? 'Event'}
-                        </div>
-                        <span style={{
-                          padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem',
-                          fontWeight: 600, color: st.color, background: st.bg, flexShrink: 0,
-                        }}>
-                          {st.label}
-                        </span>
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                    {/* Event & Category Header */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <Badge variant="secondary" size="sm" className="mb-1.5">
+                          {ticket.ticket_category?.name || ticket.category_name || 'Regular'}
+                        </Badge>
+                        <h4 className="font-extrabold text-sm sm:text-base text-text-primary group-hover:text-primary transition-colors line-clamp-1">
+                          {ticket.event?.title || ticket.event_name || 'Event TIXORA'}
+                        </h4>
                       </div>
+                      <TicketStatusBadge status={isUsed ? 'used' : (ticket.status || 'valid')} />
+                    </div>
 
-                      {/* Meta info */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
-                        {eventDate && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            <Calendar size={13} />
-                            {eventDate.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                          </div>
-                        )}
-                        {ticket.venue_name && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            <MapPin size={13} />
-                            {ticket.venue_name}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Footer */}
-                      <div style={{
-                        borderTop: '1px dashed var(--border)', paddingTop: 10,
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      }}>
-                        <div>
-                          {ticket.category_name && (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 1 }}>Kategori</div>
-                          )}
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {ticket.category_name ?? '—'}
-                          </div>
+                    {/* Metadata */}
+                    <div className="space-y-1.5 text-xs text-text-muted mb-4">
+                      {eventDate && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          <span>{formatDate(eventDate)}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-                          <QrCode size={14} /> Buka QR (30s)
+                      )}
+                      {(ticket.event?.venue?.name || ticket.venue_name) && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-accent" />
+                          <span className="truncate">
+                            {ticket.event?.venue?.name || ticket.venue_name}
+                          </span>
                         </div>
-                      </div>
+                      )}
+                    </div>
 
-                      {/* Ticket number */}
-                      <div style={{ marginTop: 8, fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>
+                    {/* QR CTA Bar */}
+                    <div className="mt-auto pt-3 border-t border-border flex items-center justify-between text-xs">
+                      <span className="font-mono text-[11px] text-text-muted">
                         #{ticket.ticket_number}
+                      </span>
+                      <div className="flex items-center gap-1.5 text-primary font-bold">
+                        <QrCode className="w-4 h-4" />
+                        <span>Buka QR (30s)</span>
                       </div>
                     </div>
                   </div>
-                </div>
+                </Card>
               </motion.div>
             );
           })}

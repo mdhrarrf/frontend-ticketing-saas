@@ -3,17 +3,19 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  UserCheck, XCircle, Users, AlertCircle, ScanLine,
-  Loader2, Camera, ShieldCheck, History, Check, Clock, X
+  UserCheck, Users, AlertCircle, ScanLine,
+  ShieldCheck, History, Check, Clock, X, RefreshCw
 } from 'lucide-react';
 import { apiService } from '../../../lib/api';
 import CameraScanner from '../../../components/scanner/CameraScanner';
+import { Button, Card, Badge } from '@/components/ui';
+import { PageHeader } from '@/components/layout';
 
 export default function OrganizerScannerPage() {
   const [scanResult, setScanResult] = useState<'idle' | 'success' | 'used' | 'invalid'>('idle');
   const [ticketData, setTicketData] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  
+
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [stats, setStats] = useState<any>(null);
@@ -113,7 +115,6 @@ export default function OrganizerScannerPage() {
       });
 
       fetchStatsAndRecent();
-
     } catch (err: any) {
       const resp = err?.response?.data;
       const status = resp?.status || '';
@@ -132,9 +133,9 @@ export default function OrganizerScannerPage() {
     } finally {
       setProcessingScan(false);
 
-      // Auto reset scanner modal overlay after 3.2 seconds
+      // Auto reset scanner overlay after 3.2 seconds
       setTimeout(() => {
-        setScanResult(prev => (prev !== 'idle' ? 'idle' : prev));
+        setScanResult((prev) => (prev !== 'idle' ? 'idle' : prev));
         setTicketData(null);
         setErrorMsg('');
       }, 3200);
@@ -169,7 +170,7 @@ export default function OrganizerScannerPage() {
       }
 
       setTimeout(() => {
-        setScanResult(prev => (prev !== 'idle' ? 'idle' : prev));
+        setScanResult((prev) => (prev !== 'idle' ? 'idle' : prev));
         setTicketData(null);
         setErrorMsg('');
       }, 3200);
@@ -180,101 +181,82 @@ export default function OrganizerScannerPage() {
 
   const totalTickets = stats?.total_tickets ?? 0;
   const checkedIn = stats?.checked_in ?? 0;
-  const percentage = totalTickets > 0 ? (checkedIn / totalTickets) * 100 : 0;
+  const percentage = totalTickets > 0 ? Math.min(100, Math.round((checkedIn / totalTickets) * 100)) : 0;
 
   return (
-    <div style={{ maxWidth: 840, margin: '0 auto', paddingBottom: 60 }}>
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                Gate Access & Scanner
-              </h1>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '3px 10px',
-                borderRadius: 20,
-                background: 'rgba(16, 185, 129, 0.12)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: '#10B981',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-              }}>
-                <ShieldCheck size={13} /> Validasi AES-256
-              </span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Pemindai kamera langsung untuk memvalidasi Dynamic QR Code 30 detik pengunjung.
-            </p>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <select 
+      <PageHeader
+        title="Gate Access & Fast Scanner"
+        badge={
+          <Badge variant="success" size="sm" className="font-bold">
+            <ShieldCheck className="w-3.5 h-3.5" /> Validasi Real-Time
+          </Badge>
+        }
+        description="Pemindai kamera berkecepatan tinggi untuk memvalidasi Dynamic QR Code 30 detik tiket pengunjung."
+        actions={
+          <div className="w-full sm:w-auto">
+            <select
               value={selectedEventId}
-              onChange={e => setSelectedEventId(e.target.value)}
-              className="input"
-              style={{ padding: '8px 12px', minWidth: 220, fontSize: '0.875rem' }}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              className="w-full sm:w-64 h-10 px-3.5 text-xs rounded-xl bg-surface border border-border text-text-primary focus:outline-none focus:border-primary transition-all"
             >
               {events.length === 0 ? <option value="">Memuat event...</option> : null}
-              {events.map(ev => (
-                <option key={ev.id} value={ev.id}>{ev.title}</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
               ))}
             </select>
           </div>
-        </div>
-      </motion.div>
+        }
+      />
 
-      {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Users size={20} style={{ color: '#6366F1' }} />
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card variant="default" className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Users className="w-5 h-5" />
             </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Check-in</div>
+            <div className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              Total Check-in
+            </div>
           </div>
-          {loading ? <div style={{ height: 32, width: 80, background: 'var(--background-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} /> : (
-            <>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {checkedIn} <span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 500 }}>/ {totalTickets}</span>
-              </div>
-              <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: '#6366F1', width: `${percentage}%`, transition: 'width 0.4s ease' }}></div>
-              </div>
-            </>
-          )}
-        </motion.div>
+          <div className="text-2xl sm:text-3xl font-black text-text-primary mb-3">
+            {checkedIn}{' '}
+            <span className="text-sm font-medium text-text-muted">/ {totalTickets}</span>
+          </div>
+          <div className="w-full h-1.5 bg-surface-elevated rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <div className="text-[11px] text-text-muted mt-1 text-right">{percentage}% Masuk</div>
+        </Card>
 
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UserCheck size={20} style={{ color: '#10B981' }} />
+        <Card variant="default" className="p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center text-success">
+              <UserCheck className="w-5 h-5" />
             </div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sisa Belum Masuk</div>
+            <div className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              Sisa Belum Masuk
+            </div>
           </div>
-          {loading ? <div style={{ height: 32, width: 80, background: 'var(--background-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} /> : (
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>{stats?.remaining ?? 0}</div>
-          )}
-        </motion.div>
+          <div className="text-2xl sm:text-3xl font-black text-text-primary">
+            {stats?.remaining ?? 0}
+          </div>
+          <div className="text-xs text-text-muted mt-2">
+            Pengunjung yang belum melewati pintu gate
+          </div>
+        </Card>
       </div>
 
       {/* Persistent Main Scanner Section */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        style={{ 
-          background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 24, 
-          padding: '32px 24px', minHeight: 480, display: 'flex', flexDirection: 'column', 
-          alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
-          marginBottom: 24,
-        }}>
-        
-        {/* Camera Scanner Component (Always Kept Mounted to Prevent DOM Media Interruption) */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <Card variant="elevated" className="p-6 sm:p-8 min-h-[460px] flex flex-col items-center justify-center relative overflow-hidden border-border/80 shadow-2xl">
+        <div className="w-full flex flex-col items-center">
           <CameraScanner
             onScan={handleCameraScan}
             isScanning={isCameraActive}
@@ -282,261 +264,170 @@ export default function OrganizerScannerPage() {
             disabled={processingScan || scanResult !== 'idle'}
           />
 
-          {/* Laser Box Placeholder when camera is OFF */}
           {!isCameraActive && (
-            <div style={{ 
-              width: 240, height: 240, border: '2px dashed var(--border)', borderRadius: 24, 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px 0', position: 'relative' 
-            }}>
-              <div style={{ position: 'absolute', top: -2, left: -2, width: 28, height: 28, borderTop: '4px solid var(--color-primary)', borderLeft: '4px solid var(--color-primary)', borderTopLeftRadius: 24 }} />
-              <div style={{ position: 'absolute', top: -2, right: -2, width: 28, height: 28, borderTop: '4px solid var(--color-primary)', borderRight: '4px solid var(--color-primary)', borderTopRightRadius: 24 }} />
-              <div style={{ position: 'absolute', bottom: -2, left: -2, width: 28, height: 28, borderBottom: '4px solid var(--color-primary)', borderLeft: '4px solid var(--color-primary)', borderBottomLeftRadius: 24 }} />
-              <div style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderBottom: '4px solid var(--color-primary)', borderRight: '4px solid var(--color-primary)', borderBottomRightRadius: 24 }} />
-              <ScanLine size={56} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+            <div className="w-56 h-56 border-2 border-dashed border-border rounded-2xl flex items-center justify-center my-6 relative">
+              <div className="absolute -top-0.5 -left-0.5 w-7 h-7 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+              <div className="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+              <div className="absolute -bottom-0.5 -left-0.5 w-7 h-7 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 border-b-4 border-r-4 border-primary rounded-br-xl" />
+              <ScanLine className="w-14 h-14 text-text-muted opacity-40" />
             </div>
           )}
 
-          <p style={{ color: 'var(--text-secondary)', margin: '14px 0 20px', fontWeight: 500, fontSize: '0.85rem' }}>
-            {isCameraActive ? 'Arahkan kamera ke Dynamic QR Code tiket pengunjung' : 'Klik tombol di atas untuk menyalakan kamera HP / Laptop'}
+          <p className="text-xs sm:text-sm text-text-secondary mt-4 mb-6 font-medium text-center">
+            {isCameraActive
+              ? 'Arahkan kamera ke Dynamic QR Code tiket pengunjung'
+              : 'Klik tombol nyalakan kamera untuk memulai proses scanning'}
           </p>
 
-          {/* Simulation buttons */}
-          <div style={{
-            display: 'flex',
-            gap: 10,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            paddingTop: 12,
-            borderTop: '1px solid var(--border)',
-            width: '100%',
-            maxWidth: 460,
-          }}>
-            <span style={{ width: '100%', fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center', marginBottom: 4 }}>
-              Uji Coba Manual / Demo Simulator:
+          {/* Quick Demo Simulator Buttons */}
+          <div className="pt-4 border-t border-border/80 w-full max-w-md text-center">
+            <span className="block text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2.5">
+              Simulasi Uji Gate Cepat:
             </span>
-            <button onClick={() => handleSimulateScan('success')} disabled={processingScan}
-              style={{ padding: '8px 14px', background: 'rgba(16,185,129,0.1)', color: '#10B981', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 10, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-              Simulasi: Berhasil
-            </button>
-            <button onClick={() => handleSimulateScan('used')} disabled={processingScan}
-              style={{ padding: '8px 14px', background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-              Simulasi: Sudah Digunakan
-            </button>
-            <button onClick={() => handleSimulateScan('invalid')} disabled={processingScan}
-              style={{ padding: '8px 14px', background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
-              Simulasi: Invalid / Expired
-            </button>
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSimulateScan('success')}
+                disabled={processingScan}
+                className="text-xs text-success border-success/30 hover:bg-success/10"
+              >
+                Simulasi: Valid
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSimulateScan('used')}
+                disabled={processingScan}
+                className="text-xs text-warning border-warning/30 hover:bg-warning/10"
+              >
+                Simulasi: Used
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSimulateScan('invalid')}
+                disabled={processingScan}
+                className="text-xs text-danger border-danger/30 hover:bg-danger/10"
+              >
+                Simulasi: Invalid
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Floating Scan Result Overlay (Appears Over Camera without unmounting video) */}
+        {/* High-Speed Instant Full-Screen Overlay Result */}
         <AnimatePresence>
           {scanResult !== 'idle' && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              style={{
-                position: 'absolute',
-                inset: 12,
-                borderRadius: 20,
-                backgroundColor: 'rgba(10, 10, 15, 0.95)',
-                backdropFilter: 'blur(10px)',
-                zIndex: 50,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 24,
-                border: scanResult === 'success' ? '2px solid #10B981' : scanResult === 'used' ? '2px solid #F59E0B' : '2px solid #EF4444',
-                boxShadow: scanResult === 'success' ? '0 0 50px rgba(16, 185, 129, 0.3)' : scanResult === 'used' ? '0 0 50px rgba(245, 158, 11, 0.3)' : '0 0 50px rgba(239, 68, 68, 0.3)',
-              }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`absolute inset-3 rounded-2xl backdrop-blur-xl z-50 flex flex-col items-center justify-center p-6 text-center shadow-2xl border-2 ${
+                scanResult === 'success'
+                  ? 'bg-emerald-950/95 border-success shadow-success/30'
+                  : scanResult === 'used'
+                  ? 'bg-amber-950/95 border-warning shadow-warning/30'
+                  : 'bg-rose-950/95 border-danger shadow-danger/30'
+              }`}
             >
               <button
                 onClick={resetResult}
-                style={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: 'none',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                }}
+                className="absolute top-4 right-4 p-2 text-white/80 hover:text-white rounded-full bg-black/30 transition-colors"
+                aria-label="Tutup"
               >
-                <X size={16} />
+                <X className="w-5 h-5" />
               </button>
 
-              {/* Success Result */}
+              {/* SUCCESS / VALID */}
               {scanResult === 'success' && (
-                <div style={{ textAlign: 'center', maxWidth: 360 }}>
-                  <div style={{ width: 76, height: 76, background: 'rgba(16,185,129,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <UserCheck size={40} style={{ color: '#10B981' }} />
+                <div className="max-w-sm space-y-4">
+                  <div className="w-20 h-20 bg-success/20 border-2 border-success rounded-full flex items-center justify-center mx-auto text-success">
+                    <Check className="w-10 h-10" strokeWidth={3} />
                   </div>
-                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10B981', margin: '0 0 4px 0' }}>CHECK-IN BERHASIL</h3>
-                  <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px 0' }}>{ticketData?.name}</p>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>{ticketData?.category}</p>
-                  
-                  <div style={{ background: 'var(--card)', padding: '12px 16px', borderRadius: 14, fontSize: '0.82rem', color: 'var(--text-muted)', border: '1px solid var(--border)', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span>No. Tiket</span>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{ticketData?.ticketNumber}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Waktu Masuk</span>
-                      <span style={{ fontWeight: 700, color: '#10B981' }}>{ticketData?.time}</span>
-                    </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-widest text-emerald-400">
+                      STATUS TIKET:
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white">
+                      VALID & MASUK
+                    </h2>
                   </div>
-
-                  <button
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-left space-y-1.5 text-xs">
+                    <div className="font-bold text-sm text-white">{ticketData?.name}</div>
+                    <div className="text-emerald-300 font-semibold">{ticketData?.category}</div>
+                    <div className="font-mono text-text-muted">{ticketData?.ticketNumber}</div>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={resetResult}
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: 10,
-                      background: '#10B981',
-                      color: 'white',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                    }}
+                    className="font-bold text-xs"
                   >
                     Lanjut Scan Berikutnya
-                  </button>
+                  </Button>
                 </div>
               )}
 
-              {/* Already Used Result */}
+              {/* ALREADY USED */}
               {scanResult === 'used' && (
-                <div style={{ textAlign: 'center', maxWidth: 360 }}>
-                  <div style={{ width: 76, height: 76, background: 'rgba(245,158,11,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <AlertCircle size={40} style={{ color: '#F59E0B' }} />
+                <div className="max-w-sm space-y-4">
+                  <div className="w-20 h-20 bg-warning/20 border-2 border-warning rounded-full flex items-center justify-center mx-auto text-warning">
+                    <AlertCircle className="w-10 h-10" strokeWidth={3} />
                   </div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#F59E0B', margin: '0 0 6px 0' }}>TIKET SUDAH DIGUNAKAN</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>
-                    Tiket ini sudah di-scan sebelumnya dan tidak dapat dipakai dua kali.
-                  </p>
-                  
-                  <div style={{ background: 'var(--card)', padding: '12px 16px', borderRadius: 14, fontSize: '0.82rem', color: 'var(--text-muted)', border: '1px solid var(--border)', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span>Pemilik</span>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ticketData?.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Waktu Pertama Masuk</span>
-                      <span style={{ fontWeight: 700, color: '#F59E0B' }}>{ticketData?.usedAt}</span>
-                    </div>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-widest text-amber-400">
+                      PERINGATAN:
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white">
+                      SUDAH DIGUNAKAN
+                    </h2>
                   </div>
-
-                  <button
+                  <div className="p-4 rounded-xl bg-black/40 border border-white/10 text-left space-y-1.5 text-xs text-amber-200">
+                    <div>Pemilik: <strong className="text-white">{ticketData?.name}</strong></div>
+                    <div>Waktu Pertama Masuk: <strong className="text-white">{ticketData?.usedAt}</strong></div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={resetResult}
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: 10,
-                      background: '#F59E0B',
-                      color: 'white',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                    }}
+                    className="font-bold text-xs border-warning text-warning hover:bg-warning/20"
                   >
                     Tutup
-                  </button>
+                  </Button>
                 </div>
               )}
 
-              {/* Invalid Result */}
+              {/* INVALID / EXPIRED */}
               {scanResult === 'invalid' && (
-                <div style={{ textAlign: 'center', maxWidth: 360 }}>
-                  <div style={{ width: 76, height: 76, background: 'rgba(239,68,68,0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <XCircle size={40} style={{ color: '#EF4444' }} />
+                <div className="max-w-sm space-y-4">
+                  <div className="w-20 h-20 bg-danger/20 border-2 border-danger rounded-full flex items-center justify-center mx-auto text-danger">
+                    <X className="w-10 h-10" strokeWidth={3} />
                   </div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#EF4444', margin: '0 0 6px 0' }}>TIKET TIDAK VALID</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>
-                    {errorMsg || 'QR Code palsu, kedaluwarsa, atau tidak terdaftar untuk event ini.'}
-                  </p>
-
-                  <button
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-widest text-red-400">
+                      DITOLAK:
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white">
+                      TIKET TIDAK VALID
+                    </h2>
+                  </div>
+                  <p className="text-xs text-red-200">{errorMsg}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={resetResult}
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: 10,
-                      background: '#EF4444',
-                      color: 'white',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                    }}
+                    className="font-bold text-xs border-danger text-danger hover:bg-danger/20"
                   >
                     Coba Lagi
-                  </button>
+                  </Button>
                 </div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-
-      {/* Recent Scans Activity Log */}
-      {recentScans.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 20, padding: '20px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-            <History size={18} style={{ color: 'var(--color-primary)' }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Riwayat Scan Terbaru (Gate Activity)</h3>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {recentScans.slice(0, 5).map((scan: any, idx: number) => (
-              <div key={idx} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                borderRadius: 12,
-                background: 'var(--background-2)',
-                fontSize: '0.82rem',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: scan.result === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: scan.result === 'success' ? '#10B981' : '#EF4444',
-                  }}>
-                    {scan.result === 'success' ? <Check size={14} /> : <XCircle size={14} />}
-                  </div>
-                  <div>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {scan.ticket?.holder_name || scan.ticket?.ticket_number || 'Tiket'}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: 8 }}>
-                      ({scan.gate || 'Gate Utama'})
-                    </span>
-                  </div>
-                </div>
-
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Clock size={12} /> {scan.scanned_at ? new Date(scan.scanned_at).toLocaleTimeString('id-ID') : '-'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      </Card>
     </div>
   );
 }
