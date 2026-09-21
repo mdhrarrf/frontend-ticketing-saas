@@ -49,7 +49,8 @@ export function InteractiveSeatMap({
 
   const layoutGroups = useMemo(() => {
     if (activeSectionId !== 'ALL') {
-      return { hasWings: false, front: [], center: [], left: [], right: [], rear: [], unclassified: [], single: filteredSections };
+      const single = seatMapData.sections.filter((s) => s.id === activeSectionId);
+      return { hasWings: false, front: [], center: [], left: [], right: [], rear: [], unclassified: [], single };
     }
 
     const front: VenueSectionData[] = [];
@@ -78,7 +79,7 @@ export function InteractiveSeatMap({
 
     const hasWings = left.length > 0 && right.length > 0;
     return { hasWings, front, center, left, right, rear, unclassified, single: [] };
-  }, [seatMapData.sections, activeSectionId, filteredSections]);
+  }, [seatMapData.sections, activeSectionId]);
 
   const renderSectionBlock = (sec: VenueSectionData, isWing: boolean = false) => {
     return (
