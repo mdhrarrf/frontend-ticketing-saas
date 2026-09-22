@@ -86,30 +86,23 @@ export default function DashboardPage() {
         </p>
       </motion.div>
 
-      {/* Stat cards — no gradient, clean border-based cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 32 }}>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         {STATS.map(({ label, value, icon: Icon }, i) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            style={{
-              padding: '18px 20px', borderRadius: 14,
-              background: 'var(--card)', border: '1px solid var(--border)',
-            }}
+            className="p-5 rounded-2xl bg-card border border-border flex flex-col justify-between hover:border-border-bright transition-all"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: 'rgba(99,102,241,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon size={18} style={{ color: 'var(--color-primary)' }} />
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                <Icon size={18} />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</span>
+              <span className="text-xs font-semibold text-text-muted">{label}</span>
             </div>
-            <div style={{ fontSize: '1.7rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+            <div className="text-xl sm:text-2xl font-black text-text-primary tracking-tight">
               {value}
             </div>
           </motion.div>
@@ -117,51 +110,39 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Orders */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Pesanan Terbaru</h2>
-          <Link href="/dashboard/orders" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', color: 'var(--color-primary)', textDecoration: 'none' }}>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-8">
+        <div className="flex justify-between items-center mb-3.5">
+          <h2 className="text-base font-bold text-text-primary">Pesanan Terbaru</h2>
+          <Link href="/dashboard/orders" className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
             Lihat Semua <ArrowRight size={13} />
           </Link>
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2.5">
             {[...Array(3)].map((_, i) => (
-              <div key={i} style={{ height: 66, borderRadius: 12, background: 'var(--background-2)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <div key={i} className="h-16 rounded-xl bg-card/60 border border-border animate-pulse" />
             ))}
           </div>
         ) : orders.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="flex flex-col gap-2.5">
             {orders.map(order => (
-              <Link key={order.id} href={`/dashboard/orders/${order.order_number}`} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                  padding: '13px 16px', borderRadius: 12,
-                  background: 'var(--card)', border: '1px solid var(--border)',
-                  transition: 'border-color 0.15s',
-                }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-bright)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                      background: 'rgba(99,102,241,0.08)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <ShoppingBag size={16} style={{ color: 'var(--color-primary)' }} />
+              <Link key={order.id} href={`/dashboard/orders/${order.order_number}`} className="block group">
+                <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl bg-card border border-border group-hover:border-border-bright group-hover:bg-surface-elevated/40 transition-all">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl shrink-0 bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                      <ShoppingBag size={18} />
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 2, color: 'var(--text-primary)' }}>
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-text-primary truncate mb-0.5">
                         {order.event?.title ?? `Order #${order.order_number}`}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>#{order.order_number}</div>
+                      <div className="text-xs text-text-muted font-mono">#{order.order_number}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <StatusBadge status={order.status} />
-                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                    <div className="font-extrabold text-sm text-text-primary">
                       {fmt(Number(order.total_amount))}
                     </div>
                   </div>
@@ -170,12 +151,9 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div style={{
-            textAlign: 'center', padding: '28px 0', borderRadius: 12,
-            background: 'var(--card)', border: '1px solid var(--border)',
-          }}>
-            <ShoppingBag size={28} style={{ margin: '0 auto 10px', color: 'var(--text-muted)', opacity: 0.5 }} />
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 12px' }}>Belum ada pesanan</p>
+          <div className="text-center py-8 rounded-2xl bg-card border border-border">
+            <ShoppingBag size={28} className="mx-auto mb-2 text-text-muted opacity-50" />
+            <p className="text-sm text-text-muted mb-3">Belum ada pesanan</p>
             <Link href="/events" className="btn btn-primary btn-sm">Cari Event</Link>
           </div>
         )}
@@ -191,39 +169,33 @@ export default function DashboardPage() {
         </div>
 
         {!loading && tickets.length === 0 ? (
-          <div style={{
-            textAlign: 'center', padding: '28px 0', borderRadius: 12,
-            background: 'var(--card)', border: '1px solid var(--border)',
-          }}>
-            <Ticket size={28} style={{ margin: '0 auto 10px', color: 'var(--text-muted)', opacity: 0.5 }} />
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Belum punya tiket aktif</p>
+          <div className="text-center py-8 rounded-2xl bg-card border border-border">
+            <Ticket size={28} className="mx-auto mb-2 text-text-muted opacity-50" />
+            <p className="text-sm text-text-muted">Belum punya tiket aktif</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
             {tickets.map(ticket => (
-              <Link key={ticket.id} href={`/dashboard/tickets/${ticket.ticket_number}`} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  padding: '16px', borderRadius: 12,
-                  background: 'var(--card)', border: '1px solid var(--border)',
-                  transition: 'border-color 0.15s, transform 0.15s',
-                }}
-                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'var(--border-bright)'; el.style.transform = 'translateY(-2px)'; }}
-                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'var(--border)'; el.style.transform = 'none'; }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Ticket size={18} style={{ color: 'var(--color-primary)' }} />
+              <Link key={ticket.id} href={`/dashboard/tickets/${ticket.ticket_number}`} className="block group">
+                <div className="p-4 rounded-xl bg-card border border-border group-hover:border-border-bright group-hover:bg-surface-elevated/40 transition-all">
+                  <div className="flex justify-between items-center mb-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                      <Ticket size={16} />
+                    </div>
                     <StatusBadge status={ticket.status} />
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: 6, color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                  <div className="font-bold text-sm text-text-primary mb-1.5 leading-snug line-clamp-1">
                     {ticket.event_name}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <Calendar size={12} />
-                    {ticket.event_date
-                      ? new Date(ticket.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : 'TBA'}
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted mb-2">
+                    <Calendar size={13} className="text-accent" />
+                    <span>
+                      {ticket.event_date
+                        ? new Date(ticket.event_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : 'TBA'}
+                    </span>
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 8, fontFamily: 'monospace' }}>
+                  <div className="text-[11px] text-text-muted font-mono pt-2 border-t border-border/60">
                     #{ticket.ticket_number}
                   </div>
                 </div>

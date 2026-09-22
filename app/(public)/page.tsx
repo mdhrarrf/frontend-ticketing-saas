@@ -96,12 +96,13 @@ export default function HomePage() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
 
-        <PageContainer size="lg" className="relative z-10 text-center">
+        {/* Hero Content — self-contained centering with guaranteed padding on all viewports */}
+        <div className="relative z-10 w-full flex justify-center px-8 sm:px-12 lg:px-16">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="max-w-3xl mx-auto"
+            style={{ textAlign: 'center', width: '100%', maxWidth: '800px' }}
           >
             {/* Tagline Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-bold uppercase tracking-wider mb-6">
@@ -109,11 +110,11 @@ export default function HomePage() {
               Platform War Tiket Konser #1 Indonesia
             </div>
 
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] mb-6 text-text-primary">
+            <h1 style={{ textAlign: 'center' }} className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] mb-6 text-text-primary">
               Platform <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">Tiket Konser</span> Terbaik
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+            <p style={{ textAlign: 'center' }} className="text-base sm:text-xl text-text-secondary max-w-lg mx-auto mb-10 leading-relaxed">
               Beli tiket konser, festival musik, dan fan meeting impianmu. Sistem antrian virtual yang fair, aman, dan berkapasitas tinggi.
             </p>
 
@@ -123,24 +124,44 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-2 max-w-xl mx-auto p-1.5 sm:p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30 mb-8"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '480px', margin: '0 auto 32px' }}
+              className="p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30"
             >
-              <div className="flex-1 flex items-center gap-3 pl-3">
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '8px', minWidth: 0 }}>
                 <Search size={18} className="text-text-muted shrink-0" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Cari konser, artis, atau venue..."
-                  className="w-full bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-muted font-medium py-2 focus:ring-0"
+                  style={{ width: '100%', minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500, padding: '8px 0' }}
+                  placeholder-style={{ color: 'var(--text-muted)' }}
                 />
               </div>
-              <Button type="submit" variant="primary" size="md" className="rounded-xl px-5 shrink-0 font-bold">
+              <button
+                type="submit"
+                style={{
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
+                  background: 'var(--color-primary)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.15s',
+                  minWidth: '72px',
+                }}
+                onMouseOver={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+              >
                 Cari
-              </Button>
+              </button>
             </motion.form>
           </motion.div>
-        </PageContainer>
+        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════
@@ -440,16 +461,19 @@ export default function HomePage() {
             <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
             <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
-            <div className="relative z-10 max-w-xl mx-auto space-y-4">
+            <div
+              style={{ position: 'relative', zIndex: 10, maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}
+              className="space-y-4"
+            >
               <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center mx-auto mb-4 border border-white/20">
                 <Ticket size={24} />
               </div>
 
-              <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              <h2 style={{ textAlign: 'center' }} className="text-2xl sm:text-4xl font-black tracking-tight text-white">
                 Siap War Tiket Konsermu?
               </h2>
 
-              <p className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md mx-auto mb-6">
+              <p style={{ textAlign: 'center' }} className="text-xs sm:text-sm text-white/80 leading-relaxed max-w-md mx-auto mb-6">
                 Bergabung dengan lebih dari 1 juta pengguna yang mempercayakan pembelian tiket konser favorit ke TIXORA.
               </p>
 

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, Calendar, ShoppingBag, BarChart3,
   Gift, Banknote, QrCode, Settings, LogOut, Ticket, ChevronRight, Store,
-  Layers, Palette
+  Layers, Palette, Menu, X
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -28,6 +28,7 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
   const router   = useRouter();
   const pathname = usePathname();
   const { user, token, logout } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -39,6 +40,11 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     }
   }, [token, user, router]);
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   if (!token || !user) return null;
   if (user.role !== 'organizer' && user.role !== 'super_admin') return null;
 
@@ -47,44 +53,62 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
     router.push('/');
   };
 
-  const initials = user.name?.trim().split(' ').slice(0,2).map((w: string) => w[0]).join('').toUpperCase() || 'O';
+  const initials = user.name?.trim().split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || 'O';
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--background)' }}>
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* ── Mobile Backdrop ─────────────────────── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
       {/* ── Sidebar ─────────────────────────────── */}
-      <aside style={{
-        width: 240, flexShrink: 0,
-        background: '#0F172A',
-        display: 'flex', flexDirection: 'column',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-      }}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        }`}
+      >
         {/* Logo */}
-        <div style={{ height: 60, display: 'flex', alignItems: 'center', paddingLeft: 20, borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-          <Link href="/organizer/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <Ticket size={22} style={{ color: '#6366F1' }} />
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: '#6366F1' }}>TIXORA</span>
-            <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', background: 'rgba(99,102,241,0.2)', padding: '2px 6px', borderRadius: 4 }}>ORG</span>
+        <div className="h-16 flex items-center justify-between px-5 border-b border-border shrink-0">
+          <Link href="/organizer/dashboard" className="flex items-center gap-2.5 text-decoration-none">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 border border-primary/40 flex items-center justify-center text-primary">
+              <Ticket size={18} />
+            </div>
+            <span className="text-base font-black tracking-tight text-white">TIXORA</span>
+            <span className="text-[10px] font-bold text-primary bg-primary/15 border border-primary/30 px-1.5 py-0.5 rounded">
+              ORG
+            </span>
           </Link>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden p-1.5 text-text-muted hover:text-text-primary rounded-lg"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin">
           {NAV.map(({ label, href, icon: Icon }) => {
             const isActive = pathname === href || (href !== '/organizer/dashboard' && pathname.startsWith(href));
             return (
-              <Link key={href} href={href} style={{ textDecoration: 'none', display: 'block', marginBottom: 2 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8,
-                  background: isActive ? 'rgba(99,102,241,0.15)' : 'transparent',
-                  borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
-                  transition: 'all 0.15s',
-                }}>
-                  <Icon size={16} style={{ color: isActive ? '#6366F1' : 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: isActive ? 600 : 400, color: isActive ? 'white' : 'rgba(255,255,255,0.55)' }}>
-                    {label}
-                  </span>
-                  {isActive && <ChevronRight size={13} style={{ color: '#6366F1', marginLeft: 'auto' }} />}
+              <Link key={href} href={href} className="block group">
+                <div
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-primary text-white shadow-md shadow-primary/25 font-bold'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated/60'
+                  }`}
+                >
+                  <Icon
+                    size={16}
+                    className={isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary'}
+                  />
+                  <span>{label}</span>
+                  {isActive && <ChevronRight size={14} className="ml-auto text-white/80" />}
                 </div>
               </Link>
             );
@@ -92,33 +116,51 @@ export default function OrganizerLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* User info + logout */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 12px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-              background: '#6366F1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontSize: '0.8rem', fontWeight: 700,
-            }}>{initials}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
+        <div className="border-t border-border p-4 shrink-0 bg-surface/30">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl shrink-0 bg-primary/20 border border-primary/40 flex items-center justify-center text-primary font-bold text-xs">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-xs text-text-primary truncate">{user.name}</div>
+              <div className="text-[11px] text-text-muted truncate">{user.email}</div>
             </div>
           </div>
-          <button onClick={handleLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.15s', color: 'rgba(239,68,68,0.8)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <LogOut size={15} />
-            <span style={{ fontSize: '0.82rem', fontWeight: 500 }}>Keluar</span>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-danger bg-danger/5 hover:bg-danger/15 border border-danger/20 transition-colors cursor-pointer"
+          >
+            <LogOut size={14} />
+            <span>Keluar</span>
           </button>
         </div>
       </aside>
 
-      {/* ── Main content ────────────────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--background)' }}>
-        <div style={{ padding: '28px', minHeight: '100%' }}>
-          {children}
-        </div>
-      </main>
+      {/* ── Main Content Area ───────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Mobile Header Bar */}
+        <header className="lg:hidden h-14 bg-card border-b border-border flex items-center justify-between px-4 shrink-0">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 text-text-secondary hover:text-text-primary rounded-lg focus:outline-none"
+            aria-label="Buka Menu"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="flex items-center gap-2 font-black text-sm tracking-tight text-white">
+            <Ticket size={16} className="text-primary" />
+            <span>TIXORA ORGANIZER</span>
+          </div>
+          <div className="w-8" />
+        </header>
+
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
