@@ -92,74 +92,129 @@ export default function HomePage() {
           1. HERO SECTION
       ═══════════════════════════════════════════════════════ */}
       <section className="relative min-h-[90vh] flex items-center justify-center pt-24 pb-16 overflow-hidden">
-        {/* Ambient Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
+        {/* ── Ambient Glows — symmetric left + right ── */}
+        {/* Center top large glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-primary/25 rounded-full blur-3xl pointer-events-none" />
+        {/* Left accent glow */}
+        <div className="absolute top-1/3 left-[10%] w-[280px] h-[280px] bg-secondary/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Right accent glow — mirrors left */}
+        <div className="absolute top-1/3 right-[10%] w-[280px] h-[280px] bg-primary/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Bottom center glow */}
+        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[150px] bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Hero Content — self-contained centering with guaranteed padding on all viewports */}
-        <div className="relative z-10 w-full flex justify-center px-8 sm:px-12 lg:px-16">
-          <motion.div
+        {/* ── Hero Content — full width, symmetric padding ── */}
+        <div className="relative z-10 w-full flex flex-col items-center px-6 sm:px-10 lg:px-20" style={{ textAlign: 'center' }}>
+
+          {/* Tagline Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-primary text-xs font-bold uppercase tracking-widest mb-8">
+            <Zap size={13} className="fill-primary" />
+            Platform War Tiket Konser #1 Indonesia
+          </div>
+
+          {/* Main Heading */}
+          <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            style={{ textAlign: 'center', width: '100%', maxWidth: '800px' }}
+            style={{ textAlign: 'center', maxWidth: '900px' }}
+            className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[1.05] mb-6 text-text-primary w-full"
           >
-            {/* Tagline Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-bold uppercase tracking-wider mb-6">
-              <Zap size={14} className="fill-primary" />
-              Platform War Tiket Konser #1 Indonesia
-            </div>
+            Platform{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">
+              Tiket Konser
+            </span>{' '}
+            Terbaik
+          </motion.h1>
 
-            <h1 style={{ textAlign: 'center' }} className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] mb-6 text-text-primary">
-              Platform <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-secondary">Tiket Konser</span> Terbaik
-            </h1>
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            style={{ textAlign: 'center', maxWidth: '560px' }}
+            className="text-base sm:text-lg text-text-secondary mb-10 leading-relaxed mx-auto"
+          >
+            Beli tiket konser, festival musik, dan fan meeting impianmu. Sistem antrian virtual yang fair, aman, dan berkapasitas tinggi.
+          </motion.p>
 
-            <p style={{ textAlign: 'center' }} className="text-base sm:text-xl text-text-secondary max-w-lg mx-auto mb-10 leading-relaxed">
-              Beli tiket konser, festival musik, dan fan meeting impianmu. Sistem antrian virtual yang fair, aman, dan berkapasitas tinggi.
-            </p>
-
-            {/* Search Bar */}
-            <motion.form
-              onSubmit={handleSearch}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '480px', margin: '0 auto 32px' }}
-              className="p-2 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-xl shadow-black/30"
-            >
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '8px', minWidth: 0 }}>
-                <Search size={18} className="text-text-muted shrink-0" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari konser, artis, atau venue..."
-                  style={{ width: '100%', minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: '14px', color: 'var(--text-primary)', fontWeight: 500, padding: '8px 0' }}
-                  placeholder-style={{ color: 'var(--text-muted)' }}
-                />
-              </div>
-              <button
-                type="submit"
+          {/* Search Bar */}
+          <motion.form
+            onSubmit={handleSearch}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              maxWidth: '520px',
+              marginBottom: '32px',
+              padding: '6px',
+              background: 'rgba(23,32,51,0.95)',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(16px)',
+            }}
+          >
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '10px', minWidth: 0 }}>
+              <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari konser, artis, atau venue..."
                 style={{
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                  padding: '10px 20px',
-                  borderRadius: '12px',
-                  background: 'var(--color-primary)',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: 700,
+                  flex: 1,
+                  minWidth: 0,
+                  background: 'transparent',
                   border: 'none',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.15s',
-                  minWidth: '72px',
+                  outline: 'none',
+                  fontSize: '14px',
+                  color: 'var(--text-primary)',
+                  fontWeight: 500,
+                  padding: '10px 0',
                 }}
-                onMouseOver={e => (e.currentTarget.style.opacity = '0.85')}
-                onMouseOut={e => (e.currentTarget.style.opacity = '1')}
-              >
-                Cari
-              </button>
-            </motion.form>
+              />
+            </div>
+            <button
+              type="submit"
+              style={{
+                flexShrink: 0,
+                padding: '10px 24px',
+                borderRadius: '12px',
+                background: 'var(--color-primary)',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                minWidth: '80px',
+              }}
+            >
+              Cari
+            </button>
+          </motion.form>
+
+          {/* Trust Indicators */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6"
+          >
+            {[
+              { icon: Shield, text: 'Anti-Bot Protection' },
+              { icon: Users,  text: '1M+ Pengguna' },
+              { icon: Star,   text: 'Rating 4.9/5' },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-2 text-xs text-text-muted">
+                <Icon size={14} className="text-primary shrink-0" />
+                <span>{text}</span>
+              </div>
+            ))}
           </motion.div>
         </div>
       </section>
